@@ -2,6 +2,8 @@
 
 **AI-powered meeting transcription, correction, summarization, and retrieval — built for enterprise knowledge management.**
 
+> [▶ Watch the walkthrough demo](docs/MeetingKMS_WT.mp4)
+
 ---
 
 
