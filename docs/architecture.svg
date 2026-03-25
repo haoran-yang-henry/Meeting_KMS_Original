@@ -169,11 +169,11 @@
   <!-- p3: Parse → Embed -->
   <path id="p3" d="M444,252 L444,296" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
 
-  <!-- p4: Embed → Transcript Correction (left branch) -->
-  <path id="p4" d="M444,354 L444,374 L155,374 L155,422" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+  <!-- p4: Embed → Transcript Correction (exits left-of-centre of Embed bottom) -->
+  <path id="p4" d="M388,354 L388,374 L155,374 L155,422" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
 
-  <!-- p5: Embed → Generate Summary (right/down branch) -->
-  <path id="p5" d="M444,354 L444,374 L432,374 L432,422" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+  <!-- p5: Embed → Generate Summary (exits right-of-centre of Embed bottom) -->
+  <path id="p5" d="M500,354 L500,374 L432,374 L432,422" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
 
   <!-- p6: Correction → User Reviews -->
   <path id="p6" d="M155,482 L155,526" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
@@ -203,12 +203,13 @@
   <text x="88" y="744" font-size="10" fill="#6C8EBF" font-style="italic">overwrites</text>
 
   <!-- p_re2sum: Re-Embed → Generate Summary  (corrected transcript triggers re-summary) -->
-  <path id="p_re2sum" d="M268,633 L298,633 L298,452 L320,452" stroke="#82B366" stroke-width="1.5" fill="none" marker-end="url(#arr-g)"/>
-  <text x="300" y="535" font-size="9" fill="#82B366" font-style="italic" transform="rotate(-90,300,535)">re-summarise</text>
+  <!-- routes along pipe_b left wall (x=305), well separated from ai1 at x=284 -->
+  <path id="p_re2sum" d="M268,633 L305,633 L305,422 L320,422" stroke="#82B366" stroke-width="1.5" fill="none" marker-end="url(#arr-g)"/>
+  <text x="307" y="528" font-size="9" fill="#82B366" font-style="italic" transform="rotate(-90,307,528)">re-summarise</text>
 
-  <!-- kb4: SaveSum → Metadata & Summaries  (updates, exits save_sum right side) -->
-  <path id="kb4" d="M544,551 L606,551 L606,800 L565,800" stroke="#82B366" stroke-width="1.5" fill="none" marker-end="url(#arr-g)"/>
-  <text x="620" y="545" font-size="10" fill="#82B366" font-style="italic">updates</text>
+  <!-- kb4: SaveSum → Metadata & Summaries  (exits from SaveSum bottom-right, not mid-node) -->
+  <path id="kb4" d="M544,576 L606,576 L606,800 L565,800" stroke="#82B366" stroke-width="1.5" fill="none" marker-end="url(#arr-g)"/>
+  <text x="620" y="570" font-size="10" fill="#82B366" font-style="italic">updates</text>
 
   <!-- kb5: UpdateProjMem → Project Memory -->
   <path id="kb5" d="M432,656 L432,716 L759,716 L759,770" stroke="#82B366" stroke-width="1.5" fill="none" marker-end="url(#arr-g)"/>
@@ -217,26 +218,27 @@
        KB READ PATHS
        ============================================================ -->
 
-  <!-- r1: Search Index → Chat Interface -->
-  <path id="r1" d="M141,832 L141,858 L187,858 L187,878" stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+  <!-- r1: Search Index → Chat Interface (straight down, SI cx=141 is within Chat x-range) -->
+  <path id="r1" d="M141,832 L141,878" stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
 
-  <!-- r2: Metadata & Summaries → Chat Interface -->
-  <path id="r2" d="M466,832 L466,858 L187,858 L187,878" stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
-  <text x="328" y="852" text-anchor="middle" font-size="9" fill="#666" font-style="italic">summary &amp; metadata</text>
+  <!-- r2: Metadata & Summaries → Chat Interface (arrives at x=218, right of r1 at x=141) -->
+  <path id="r2" d="M466,832 L466,858 L218,858 L218,878" stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+  <text x="342" y="852" text-anchor="middle" font-size="9" fill="#666" font-style="italic">summary &amp; metadata</text>
 
-  <!-- r3: Metadata & Summaries → Dashboard (exits right side of cylinder) -->
-  <path id="r3" d="M565,800 L565,858 L575,858 L575,878" stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+  <!-- r3: Metadata & Summaries → Dashboard (arrives at x=505, left portion of Dashboard) -->
+  <path id="r3" d="M565,800 L565,858 L505,858 L505,878" stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
 
-  <!-- r4: Project Memory → Dashboard -->
-  <path id="r4" d="M759,832 L759,858 L575,858 L575,878" stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+  <!-- r4: Project Memory → Dashboard (arrives at x=555, separate from r3 at x=505) -->
+  <path id="r4" d="M759,832 L759,858 L555,858 L555,878" stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
 
   <!-- ============================================================
        AI SERVICE PATHS (dashed, purple)
        ============================================================ -->
 
-  <!-- ai1: Transcript Correction → Azure AI Foundry  (GPT + Embedding, routes above pipelines) -->
-  <path id="ai1" d="M155,422 L155,376 L1039,376 L1039,400" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arr-v)"/>
-  <text x="597" y="370" text-anchor="middle" font-size="10" fill="#7C3AED" font-style="italic">GPT · Embedding</text>
+  <!-- ai1: Transcript Correction → Azure AI Foundry  (exits Correction RIGHT wall, routes above
+       pipelines at y=380 — avoids overlap with p4 arrival at x=155 and p_re2sum at x=305) -->
+  <path id="ai1" d="M278,452 L284,452 L284,380 L1039,380 L1039,400" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arr-v)"/>
+  <text x="661" y="374" text-anchor="middle" font-size="10" fill="#7C3AED" font-style="italic">GPT · Embedding</text>
 
   <!-- ai2: Generate Summary → Azure AI Foundry  (GPT, direct right) -->
   <path id="ai2" d="M544,452 L895,452 L895,466 L909,466" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arr-v)"/>
