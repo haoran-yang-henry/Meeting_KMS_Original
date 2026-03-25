@@ -1,0 +1,333 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  viewBox="0 0 1200 950" width="1200" height="950"
+  font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="13">
+
+  <defs>
+    <marker id="arr"   markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#555"/></marker>
+    <marker id="arr-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#6C8EBF"/></marker>
+    <marker id="arr-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#82B366"/></marker>
+    <marker id="arr-v" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#7C3AED"/></marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="950" fill="#F5F7FA" rx="14"/>
+
+  <!-- Title -->
+  <text x="600" y="22" text-anchor="middle" font-size="15" font-weight="700" fill="#1a1a2e">Meeting KMS — System Architecture &amp; Data Flow</text>
+
+  <!-- ============================================================
+       TECH STACK
+       ============================================================ -->
+  <rect x="18" y="30" width="266" height="110" rx="8" fill="#FAFAFA" stroke="#CCCCCC" stroke-width="1.2"/>
+  <text x="30" y="50"  font-size="11" fill="#333"><tspan font-weight="700">Language:</tspan>  TypeScript</text>
+  <text x="30" y="66"  font-size="11" fill="#333"><tspan font-weight="700">Frontend:</tspan>  React · Vite</text>
+  <text x="30" y="82"  font-size="11" fill="#333"><tspan font-weight="700">Backend:</tspan>   Supabase Edge Functions (Deno)</text>
+  <text x="30" y="98"  font-size="11" fill="#333"><tspan font-weight="700">LLM:</tspan>       Azure AI Foundry — GPT model</text>
+  <text x="30" y="114" font-size="11" fill="#333"><tspan font-weight="700">Embedding:</tspan> text-embedding-3-large</text>
+  <text x="30" y="130" font-size="11" fill="#333"><tspan font-weight="700">Search:</tspan>    Azure AI Search (vector + metadata)</text>
+
+  <!-- ============================================================
+       USER
+       ============================================================ -->
+  <rect x="470" y="36" width="140" height="44" rx="22" fill="#FFD966" stroke="#D6A000" stroke-width="2"/>
+  <text x="540" y="64" text-anchor="middle" font-weight="700" font-size="14" fill="#333">User / Analyst</text>
+
+  <!-- ============================================================
+       UPLOAD TRANSCRIPT
+       ============================================================ -->
+  <rect x="451" y="100" width="178" height="52" rx="10" fill="#DAE8FC" stroke="#6C8EBF" stroke-width="1.5"/>
+  <text x="540" y="123" text-anchor="middle" font-weight="600" font-size="12" fill="#1a1a2e">Upload Transcript</text>
+  <text x="540" y="141" text-anchor="middle" font-size="10" fill="#555" font-style="italic">Assign Project &amp; Context</text>
+
+  <!-- ============================================================
+       PRE-PROCESSING SUBGRAPH
+       ============================================================ -->
+  <rect x="328" y="172" width="232" height="192" rx="10" fill="#EEF4FF" stroke="#6C8EBF" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="338" y="190" font-size="11" font-weight="700" fill="#6C8EBF" font-style="italic">Pre-processing</text>
+
+  <!-- Parse & Chunk Transcript -->
+  <rect x="340" y="196" width="208" height="56" rx="9" fill="#DAE8FC" stroke="#6C8EBF" stroke-width="1.5"/>
+  <text x="444" y="221" text-anchor="middle" font-weight="600" font-size="12" fill="#1a1a2e">Parse &amp; Chunk Transcript</text>
+  <text x="444" y="238" text-anchor="middle" font-size="10" fill="#555" font-style="italic">VTT · SRT · DOCX · TXT · PDF</text>
+
+  <!-- Embed & Index Segments -->
+  <rect x="340" y="296" width="208" height="58" rx="9" fill="#DAE8FC" stroke="#6C8EBF" stroke-width="1.5"/>
+  <text x="444" y="322" text-anchor="middle" font-weight="600" font-size="12" fill="#1a1a2e">Embed &amp; Index Segments</text>
+  <text x="444" y="339" text-anchor="middle" font-size="10" fill="#6B21A8" font-style="italic">Embedding model — initial index (raw)</text>
+
+  <!-- Parallel split annotation -->
+  <text x="444" y="370" text-anchor="middle" font-size="10" fill="#666" font-style="italic">↙  parallel execution  ↘</text>
+
+  <!-- ============================================================
+       TRANSCRIPT PROCESSING PIPELINE
+       ============================================================ -->
+  <rect x="18" y="392" width="272" height="302" fill="none" stroke="#333" stroke-width="1.5"/>
+  <text x="28" y="410" font-size="12" font-weight="700" fill="#333">Transcript Processing Pipeline</text>
+
+  <!-- Transcript Correction -->
+  <rect x="32" y="422" width="246" height="60" rx="9" fill="#DAE8FC" stroke="#6C8EBF" stroke-width="1.5"/>
+  <text x="155" y="447" text-anchor="middle" font-weight="600" font-size="12" fill="#1a1a2e">Transcript Correction</text>
+  <text x="155" y="464" text-anchor="middle" font-size="10" fill="#6B21A8" font-style="italic">GPT — batch grammar &amp; terminology fix</text>
+
+  <!-- User Reviews & Applies Corrections -->
+  <rect x="32" y="526" width="246" height="50" rx="9" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+  <text x="155" y="547" text-anchor="middle" font-weight="600" font-size="11" fill="#1a1a2e">User Reviews &amp; Applies Corrections</text>
+  <text x="155" y="564" text-anchor="middle" font-size="10" fill="#92400E" font-style="italic">Human-in-the-loop</text>
+
+  <!-- "if corrections applied" label (between the two nodes) -->
+  <text x="155" y="600" text-anchor="middle" font-size="10" fill="#888" font-style="italic">if corrections applied</text>
+
+  <!-- Re-Embed & Index (dashed border = conditional) -->
+  <rect x="42" y="610" width="226" height="46" rx="9" fill="#EFF6FF" stroke="#6C8EBF" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="155" y="630" text-anchor="middle" font-weight="600" font-size="11" fill="#1a1a2e">Re-Embed &amp; Index</text>
+  <text x="155" y="647" text-anchor="middle" font-size="10" fill="#6B21A8" font-style="italic">Embedding model — overwrite corrected</text>
+
+  <!-- ============================================================
+       SUMMARY MANAGEMENT PIPELINE
+       ============================================================ -->
+  <rect x="306" y="392" width="548" height="302" fill="none" stroke="#333" stroke-width="1.5"/>
+  <text x="316" y="410" font-size="12" font-weight="700" fill="#333">Summary Management Pipeline</text>
+
+  <!-- Generate Summary -->
+  <rect x="320" y="422" width="224" height="60" rx="9" fill="#D5E8D4" stroke="#82B366" stroke-width="1.5"/>
+  <text x="432" y="447" text-anchor="middle" font-weight="600" font-size="12" fill="#1a1a2e">Generate Summary</text>
+  <text x="432" y="464" text-anchor="middle" font-size="10" fill="#6B21A8" font-style="italic">GPT — topics, tags, key points, action items</text>
+
+  <!-- Save Summary & Update Metadata -->
+  <rect x="320" y="526" width="224" height="50" rx="9" fill="#D5E8D4" stroke="#82B366" stroke-width="1.5"/>
+  <text x="432" y="551" text-anchor="middle" font-weight="600" font-size="12" fill="#1a1a2e">Save Summary &amp; Update Metadata</text>
+
+  <!-- Update Project Memory -->
+  <rect x="320" y="610" width="224" height="46" rx="9" fill="#D5E8D4" stroke="#82B366" stroke-width="1.5"/>
+  <text x="432" y="631" text-anchor="middle" font-weight="600" font-size="12" fill="#1a1a2e">Update Project Memory</text>
+  <text x="432" y="648" text-anchor="middle" font-size="10" fill="#6B21A8" font-style="italic">GPT — cross-meeting knowledge synthesis</text>
+
+  <!-- ============================================================
+       AZURE AI FOUNDRY ENDPOINT
+       ============================================================ -->
+  <rect x="895" y="400" width="288" height="212" rx="10" fill="#F5F0FF" stroke="#7C3AED" stroke-width="2"/>
+  <text x="1039" y="420" text-anchor="middle" font-size="12" font-weight="700" fill="#4C1D95">Azure AI Foundry Endpoint</text>
+
+  <!-- GPT model -->
+  <rect x="909" y="436" width="260" height="60" rx="8" fill="#E1D5E7" stroke="#9673A6" stroke-width="1.5"/>
+  <text x="1039" y="462" text-anchor="middle" font-weight="600" font-size="12" fill="#1a1a2e">GPT model</text>
+  <text x="1039" y="479" text-anchor="middle" font-size="10" fill="#555" font-style="italic">Chat Completion</text>
+
+  <!-- text-embedding-3-large -->
+  <rect x="909" y="526" width="260" height="60" rx="8" fill="#E1D5E7" stroke="#9673A6" stroke-width="1.5"/>
+  <text x="1039" y="552" text-anchor="middle" font-weight="600" font-size="12" fill="#1a1a2e">text-embedding-3-large</text>
+  <text x="1039" y="569" text-anchor="middle" font-size="10" fill="#555" font-style="italic">Embeddings</text>
+
+  <!-- ============================================================
+       KNOWLEDGE BASE
+       ============================================================ -->
+  <rect x="18" y="730" width="856" height="118" rx="4" fill="#FFF0F0" stroke="#B85450" stroke-width="1.5"/>
+  <text x="28" y="750"  font-size="13" font-weight="700" fill="#B85450">Knowledge Base</text>
+  <text x="446" y="748" text-anchor="middle" font-size="11" fill="#B85450" font-style="italic">Azure AI Search</text>
+
+  <!-- Search Index — cylinder -->
+  <rect x="62" y="770" width="158" height="62" rx="3" fill="#F8CECC" stroke="#B85450" stroke-width="1.5"/>
+  <ellipse cx="141" cy="772" rx="79" ry="10" fill="#F4A09A" stroke="#B85450" stroke-width="1.5"/>
+  <text x="141" y="802" text-anchor="middle" font-weight="700" font-size="12" fill="#000">Search Index</text>
+  <text x="141" y="818" text-anchor="middle" font-size="10" fill="#444" font-style="italic">Segment vectors</text>
+
+  <!-- Metadata &amp; Summaries — cylinder -->
+  <rect x="367" y="770" width="198" height="62" rx="3" fill="#F8CECC" stroke="#B85450" stroke-width="1.5"/>
+  <ellipse cx="466" cy="772" rx="99" ry="10" fill="#F4A09A" stroke="#B85450" stroke-width="1.5"/>
+  <text x="466" y="802" text-anchor="middle" font-weight="700" font-size="12" fill="#000">Metadata &amp; Summaries</text>
+  <text x="466" y="818" text-anchor="middle" font-size="10" fill="#444" font-style="italic">Per-transcript records</text>
+
+  <!-- Project Memory — cylinder -->
+  <rect x="660" y="770" width="198" height="62" rx="3" fill="#F8CECC" stroke="#B85450" stroke-width="1.5"/>
+  <ellipse cx="759" cy="772" rx="99" ry="10" fill="#F4A09A" stroke="#B85450" stroke-width="1.5"/>
+  <text x="759" y="802" text-anchor="middle" font-weight="700" font-size="12" fill="#000">Project Memory</text>
+  <text x="759" y="818" text-anchor="middle" font-size="10" fill="#444" font-style="italic">Cross-meeting summaries</text>
+
+  <!-- ============================================================
+       ACCESS SURFACES
+       ============================================================ -->
+  <!-- Chat Interface -->
+  <rect x="62" y="878" width="250" height="56" rx="10" fill="#FFE6CC" stroke="#D6B656" stroke-width="1.5"/>
+  <text x="187" y="902" text-anchor="middle" font-weight="600" font-size="12" fill="#1a1a2e">Chat Interface</text>
+  <text x="187" y="920" text-anchor="middle" font-size="9" fill="#555" font-style="italic">Embed Query → Vector Search → Generate Response</text>
+
+  <!-- Dashboard &amp; Views -->
+  <rect x="450" y="878" width="250" height="56" rx="10" fill="#FFE6CC" stroke="#D6B656" stroke-width="1.5"/>
+  <text x="575" y="902" text-anchor="middle" font-weight="600" font-size="12" fill="#1a1a2e">Dashboard &amp; Views</text>
+  <text x="575" y="920" text-anchor="middle" font-size="9" fill="#555" font-style="italic">Metadata · Summaries · Project Memory</text>
+
+  <!-- ============================================================
+       MAIN DATA FLOW PATHS (solid arrows)
+       ============================================================ -->
+
+  <!-- p1: User → Upload -->
+  <path id="p1" d="M540,80 L540,100" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+
+  <!-- p2: Upload → Parse (jog left into pre-processing zone) -->
+  <path id="p2" d="M540,152 L540,172 L444,172 L444,196" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+
+  <!-- p3: Parse → Embed -->
+  <path id="p3" d="M444,252 L444,296" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+
+  <!-- p4: Embed → Transcript Correction (left branch) -->
+  <path id="p4" d="M444,354 L444,374 L155,374 L155,422" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+
+  <!-- p5: Embed → Generate Summary (right/down branch) -->
+  <path id="p5" d="M444,354 L444,374 L432,374 L432,422" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+
+  <!-- p6: Correction → User Reviews -->
+  <path id="p6" d="M155,482 L155,526" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+
+  <!-- p7: User Reviews → Re-Embed (conditional, dashed) -->
+  <path id="p7" d="M155,576 L155,610" stroke="#555" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arr)"/>
+
+  <!-- p8: GenSum → SaveSum -->
+  <path id="p8" d="M432,482 L432,526" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+
+  <!-- p9: SaveSum → UpdateProjMem -->
+  <path id="p9" d="M432,576 L432,610" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+
+  <!-- ============================================================
+       KB WRITE PATHS
+       ============================================================ -->
+
+  <!-- kb1: Embed → Search Index  (far-left route, initial raw index) -->
+  <path id="kb1" d="M340,324 L10,324 L10,800 L62,800" stroke="#6C8EBF" stroke-width="1.5" fill="none" marker-end="url(#arr-b)"/>
+
+  <!-- kb2: Embed → Metadata & Summaries  (far-right route, creates initial record) -->
+  <path id="kb2" d="M548,324 L878,324 L878,762 L565,762" stroke="#6C8EBF" stroke-width="1.5" fill="none" marker-end="url(#arr-b)"/>
+  <text x="714" y="318" text-anchor="middle" font-size="10" fill="#6C8EBF" font-style="italic">creates</text>
+
+  <!-- kb3: Re-Embed → Search Index  (overwrites, dashed) -->
+  <path id="kb3" d="M155,656 L155,730 L141,730 L141,770" stroke="#6C8EBF" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arr-b)"/>
+  <text x="88" y="744" font-size="10" fill="#6C8EBF" font-style="italic">overwrites</text>
+
+  <!-- kb4: SaveSum → Metadata & Summaries  (updates, exits save_sum right side) -->
+  <path id="kb4" d="M544,551 L606,551 L606,800 L565,800" stroke="#82B366" stroke-width="1.5" fill="none" marker-end="url(#arr-g)"/>
+  <text x="620" y="545" font-size="10" fill="#82B366" font-style="italic">updates</text>
+
+  <!-- kb5: UpdateProjMem → Project Memory -->
+  <path id="kb5" d="M432,656 L432,716 L759,716 L759,770" stroke="#82B366" stroke-width="1.5" fill="none" marker-end="url(#arr-g)"/>
+
+  <!-- ============================================================
+       KB READ PATHS
+       ============================================================ -->
+
+  <!-- r1: Search Index → Chat Interface -->
+  <path id="r1" d="M141,832 L141,858 L187,858 L187,878" stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+  <!-- r2: Metadata & Summaries → Chat Interface -->
+  <path id="r2" d="M466,832 L466,858 L187,858 L187,878" stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+  <text x="328" y="852" text-anchor="middle" font-size="9" fill="#666" font-style="italic">summary &amp; metadata</text>
+
+  <!-- r3: Metadata & Summaries → Dashboard (exits right side of cylinder) -->
+  <path id="r3" d="M565,800 L565,858 L575,858 L575,878" stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+  <!-- r4: Project Memory → Dashboard -->
+  <path id="r4" d="M759,832 L759,858 L575,858 L575,878" stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+  <!-- ============================================================
+       AI SERVICE PATHS (dashed, purple)
+       ============================================================ -->
+
+  <!-- ai1: Transcript Correction → Azure AI Foundry  (GPT + Embedding, routes above pipelines) -->
+  <path id="ai1" d="M155,422 L155,376 L1039,376 L1039,400" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arr-v)"/>
+  <text x="597" y="370" text-anchor="middle" font-size="10" fill="#7C3AED" font-style="italic">GPT · Embedding</text>
+
+  <!-- ai2: Generate Summary → Azure AI Foundry  (GPT, direct right) -->
+  <path id="ai2" d="M544,452 L895,452 L895,466 L909,466" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arr-v)"/>
+  <text x="720" y="446" font-size="10" fill="#7C3AED" font-style="italic">GPT</text>
+
+  <!-- ai3: Chat Interface → Azure AI Foundry  (GPT + Embedding, routes right then up) -->
+  <path id="ai3" d="M312,906 L950,906 L950,556 L909,556" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arr-v)"/>
+  <text x="631" y="900" text-anchor="middle" font-size="10" fill="#7C3AED" font-style="italic">GPT · Embedding</text>
+
+  <!-- ============================================================
+       ANIMATED FLOW DOTS
+       ============================================================ -->
+
+  <!-- p1: User→Upload (blue) ×2 -->
+  <circle r="5" fill="#4A90D9" opacity="0.9"><animateMotion dur="0.5s" repeatCount="indefinite" begin="0s"><mpath href="#p1" xlink:href="#p1"/></animateMotion></circle>
+  <circle r="5" fill="#4A90D9" opacity="0.9"><animateMotion dur="0.5s" repeatCount="indefinite" begin="0.25s"><mpath href="#p1" xlink:href="#p1"/></animateMotion></circle>
+
+  <!-- p2: Upload→Parse ×2 -->
+  <circle r="5" fill="#4A90D9" opacity="0.9"><animateMotion dur="1.6s" repeatCount="indefinite" begin="0.2s"><mpath href="#p2" xlink:href="#p2"/></animateMotion></circle>
+  <circle r="5" fill="#4A90D9" opacity="0.9"><animateMotion dur="1.6s" repeatCount="indefinite" begin="1.0s"><mpath href="#p2" xlink:href="#p2"/></animateMotion></circle>
+
+  <!-- p3: Parse→Embed ×2 -->
+  <circle r="5" fill="#4A90D9" opacity="0.9"><animateMotion dur="0.8s" repeatCount="indefinite" begin="0.5s"><mpath href="#p3" xlink:href="#p3"/></animateMotion></circle>
+  <circle r="5" fill="#4A90D9" opacity="0.9"><animateMotion dur="0.8s" repeatCount="indefinite" begin="0.9s"><mpath href="#p3" xlink:href="#p3"/></animateMotion></circle>
+
+  <!-- p4: Embed→Correction (blue, long left arc) ×2 -->
+  <circle r="5" fill="#6C8EBF" opacity="0.9"><animateMotion dur="2.5s" repeatCount="indefinite" begin="0.8s"><mpath href="#p4" xlink:href="#p4"/></animateMotion></circle>
+  <circle r="5" fill="#6C8EBF" opacity="0.9"><animateMotion dur="2.5s" repeatCount="indefinite" begin="2.0s"><mpath href="#p4" xlink:href="#p4"/></animateMotion></circle>
+
+  <!-- p5: Embed→GenSum (green, short right) ×2 -->
+  <circle r="5" fill="#82B366" opacity="0.9"><animateMotion dur="1.0s" repeatCount="indefinite" begin="0.8s"><mpath href="#p5" xlink:href="#p5"/></animateMotion></circle>
+  <circle r="5" fill="#82B366" opacity="0.9"><animateMotion dur="1.0s" repeatCount="indefinite" begin="1.3s"><mpath href="#p5" xlink:href="#p5"/></animateMotion></circle>
+
+  <!-- p6: Correction→UserReviews (blue) ×2 -->
+  <circle r="5" fill="#6C8EBF" opacity="0.9"><animateMotion dur="0.8s" repeatCount="indefinite" begin="1.2s"><mpath href="#p6" xlink:href="#p6"/></animateMotion></circle>
+  <circle r="5" fill="#6C8EBF" opacity="0.9"><animateMotion dur="0.8s" repeatCount="indefinite" begin="1.6s"><mpath href="#p6" xlink:href="#p6"/></animateMotion></circle>
+
+  <!-- p7: UserReviews→ReEmbed (amber, dashed) ×2 -->
+  <circle r="5" fill="#D97706" opacity="0.9"><animateMotion dur="0.6s" repeatCount="indefinite" begin="1.5s"><mpath href="#p7" xlink:href="#p7"/></animateMotion></circle>
+  <circle r="5" fill="#D97706" opacity="0.9"><animateMotion dur="0.6s" repeatCount="indefinite" begin="1.85s"><mpath href="#p7" xlink:href="#p7"/></animateMotion></circle>
+
+  <!-- p8: GenSum→SaveSum (green) ×2 -->
+  <circle r="5" fill="#82B366" opacity="0.9"><animateMotion dur="0.8s" repeatCount="indefinite" begin="1.2s"><mpath href="#p8" xlink:href="#p8"/></animateMotion></circle>
+  <circle r="5" fill="#82B366" opacity="0.9"><animateMotion dur="0.8s" repeatCount="indefinite" begin="1.6s"><mpath href="#p8" xlink:href="#p8"/></animateMotion></circle>
+
+  <!-- p9: SaveSum→UpdateProjMem (green) ×2 -->
+  <circle r="5" fill="#82B366" opacity="0.9"><animateMotion dur="0.8s" repeatCount="indefinite" begin="1.5s"><mpath href="#p9" xlink:href="#p9"/></animateMotion></circle>
+  <circle r="5" fill="#82B366" opacity="0.9"><animateMotion dur="0.8s" repeatCount="indefinite" begin="1.9s"><mpath href="#p9" xlink:href="#p9"/></animateMotion></circle>
+
+  <!-- kb1: Embed→SearchIndex (blue, long) ×2 -->
+  <circle r="5" fill="#6C8EBF" opacity="0.85"><animateMotion dur="5s" repeatCount="indefinite" begin="0.5s"><mpath href="#kb1" xlink:href="#kb1"/></animateMotion></circle>
+  <circle r="5" fill="#6C8EBF" opacity="0.85"><animateMotion dur="5s" repeatCount="indefinite" begin="2.8s"><mpath href="#kb1" xlink:href="#kb1"/></animateMotion></circle>
+
+  <!-- kb2: Embed→MetaSum (blue, long) ×2 -->
+  <circle r="5" fill="#6C8EBF" opacity="0.85"><animateMotion dur="6s" repeatCount="indefinite" begin="0.5s"><mpath href="#kb2" xlink:href="#kb2"/></animateMotion></circle>
+  <circle r="5" fill="#6C8EBF" opacity="0.85"><animateMotion dur="6s" repeatCount="indefinite" begin="3.2s"><mpath href="#kb2" xlink:href="#kb2"/></animateMotion></circle>
+
+  <!-- kb3: ReEmbed→SI (blue dashed, overwrites) ×2 -->
+  <circle r="5" fill="#6C8EBF" opacity="0.85"><animateMotion dur="1.2s" repeatCount="indefinite" begin="1.8s"><mpath href="#kb3" xlink:href="#kb3"/></animateMotion></circle>
+  <circle r="5" fill="#6C8EBF" opacity="0.85"><animateMotion dur="1.2s" repeatCount="indefinite" begin="2.4s"><mpath href="#kb3" xlink:href="#kb3"/></animateMotion></circle>
+
+  <!-- kb4: SaveSum→MetaSum (green) ×2 -->
+  <circle r="5" fill="#82B366" opacity="0.85"><animateMotion dur="2.0s" repeatCount="indefinite" begin="1.8s"><mpath href="#kb4" xlink:href="#kb4"/></animateMotion></circle>
+  <circle r="5" fill="#82B366" opacity="0.85"><animateMotion dur="2.0s" repeatCount="indefinite" begin="2.8s"><mpath href="#kb4" xlink:href="#kb4"/></animateMotion></circle>
+
+  <!-- kb5: UpdateProjMem→ProjMem (green) ×2 -->
+  <circle r="5" fill="#82B366" opacity="0.85"><animateMotion dur="2.5s" repeatCount="indefinite" begin="2.0s"><mpath href="#kb5" xlink:href="#kb5"/></animateMotion></circle>
+  <circle r="5" fill="#82B366" opacity="0.85"><animateMotion dur="2.5s" repeatCount="indefinite" begin="3.2s"><mpath href="#kb5" xlink:href="#kb5"/></animateMotion></circle>
+
+  <!-- r1: SI→Chat (orange) ×2 -->
+  <circle r="5" fill="#D6A000" opacity="0.9"><animateMotion dur="1.0s" repeatCount="indefinite" begin="2.5s"><mpath href="#r1" xlink:href="#r1"/></animateMotion></circle>
+  <circle r="5" fill="#D6A000" opacity="0.9"><animateMotion dur="1.0s" repeatCount="indefinite" begin="3.0s"><mpath href="#r1" xlink:href="#r1"/></animateMotion></circle>
+
+  <!-- r2: MetaSum→Chat (orange) ×2 -->
+  <circle r="5" fill="#D6A000" opacity="0.9"><animateMotion dur="2.0s" repeatCount="indefinite" begin="2.6s"><mpath href="#r2" xlink:href="#r2"/></animateMotion></circle>
+  <circle r="5" fill="#D6A000" opacity="0.9"><animateMotion dur="2.0s" repeatCount="indefinite" begin="3.6s"><mpath href="#r2" xlink:href="#r2"/></animateMotion></circle>
+
+  <!-- r3: MetaSum→Dashboard (orange) ×2 -->
+  <circle r="5" fill="#D6A000" opacity="0.9"><animateMotion dur="1.5s" repeatCount="indefinite" begin="2.6s"><mpath href="#r3" xlink:href="#r3"/></animateMotion></circle>
+  <circle r="5" fill="#D6A000" opacity="0.9"><animateMotion dur="1.5s" repeatCount="indefinite" begin="3.4s"><mpath href="#r3" xlink:href="#r3"/></animateMotion></circle>
+
+  <!-- r4: ProjMem→Dashboard (orange) ×2 -->
+  <circle r="5" fill="#D6A000" opacity="0.9"><animateMotion dur="1.8s" repeatCount="indefinite" begin="2.7s"><mpath href="#r4" xlink:href="#r4"/></animateMotion></circle>
+  <circle r="5" fill="#D6A000" opacity="0.9"><animateMotion dur="1.8s" repeatCount="indefinite" begin="3.7s"><mpath href="#r4" xlink:href="#r4"/></animateMotion></circle>
+
+  <!-- ai1: Correction→Foundry (purple, long) ×1 -->
+  <circle r="4" fill="#7C3AED" opacity="0.7"><animateMotion dur="4.0s" repeatCount="indefinite" begin="0.3s"><mpath href="#ai1" xlink:href="#ai1"/></animateMotion></circle>
+  <circle r="4" fill="#7C3AED" opacity="0.7"><animateMotion dur="4.0s" repeatCount="indefinite" begin="2.3s"><mpath href="#ai1" xlink:href="#ai1"/></animateMotion></circle>
+
+  <!-- ai2: GenSum→Foundry (purple) ×1 -->
+  <circle r="4" fill="#7C3AED" opacity="0.7"><animateMotion dur="2.0s" repeatCount="indefinite" begin="0.3s"><mpath href="#ai2" xlink:href="#ai2"/></animateMotion></circle>
+  <circle r="4" fill="#7C3AED" opacity="0.7"><animateMotion dur="2.0s" repeatCount="indefinite" begin="1.3s"><mpath href="#ai2" xlink:href="#ai2"/></animateMotion></circle>
+
+  <!-- ai3: Chat→Foundry (purple, long) ×1 -->
+  <circle r="4" fill="#7C3AED" opacity="0.7"><animateMotion dur="5.0s" repeatCount="indefinite" begin="0.3s"><mpath href="#ai3" xlink:href="#ai3"/></animateMotion></circle>
+  <circle r="4" fill="#7C3AED" opacity="0.7"><animateMotion dur="5.0s" repeatCount="indefinite" begin="2.8s"><mpath href="#ai3" xlink:href="#ai3"/></animateMotion></circle>
+
+</svg>

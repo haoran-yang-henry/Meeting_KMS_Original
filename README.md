@@ -3,6 +3,7 @@
 **AI-powered meeting transcription, correction, summarization, and retrieval — built for enterprise knowledge management.**
 
 ---
+
 <img width="1180" height="1006" alt="image" src="https://github.com/user-attachments/assets/63a4c6dd-b189-48ca-b01c-b11c9baf40cc" />
 
 ## Overview
@@ -12,6 +13,10 @@ Meeting KMS transforms raw meeting transcripts into structured organizational kn
 ```
 Upload → Parse → Correct → Summarize → Search
 ```
+
+### System Architecture
+
+![System Architecture & Data Flow](docs/architecture.svg)
 
 ---
 
