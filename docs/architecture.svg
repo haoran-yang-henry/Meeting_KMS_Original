@@ -202,6 +202,10 @@
   <path id="kb3" d="M155,656 L155,730 L141,730 L141,770" stroke="#6C8EBF" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arr-b)"/>
   <text x="88" y="744" font-size="10" fill="#6C8EBF" font-style="italic">overwrites</text>
 
+  <!-- p_re2sum: Re-Embed → Generate Summary  (corrected transcript triggers re-summary) -->
+  <path id="p_re2sum" d="M268,633 L298,633 L298,452 L320,452" stroke="#82B366" stroke-width="1.5" fill="none" marker-end="url(#arr-g)"/>
+  <text x="300" y="535" font-size="9" fill="#82B366" font-style="italic" transform="rotate(-90,300,535)">re-summarise</text>
+
   <!-- kb4: SaveSum → Metadata & Summaries  (updates, exits save_sum right side) -->
   <path id="kb4" d="M544,551 L606,551 L606,800 L565,800" stroke="#82B366" stroke-width="1.5" fill="none" marker-end="url(#arr-g)"/>
   <text x="620" y="545" font-size="10" fill="#82B366" font-style="italic">updates</text>
@@ -293,6 +297,10 @@
   <!-- kb3: ReEmbed→SI (blue dashed, overwrites) ×2 -->
   <circle r="5" fill="#6C8EBF" opacity="0.85"><animateMotion dur="1.2s" repeatCount="indefinite" begin="1.8s"><mpath href="#kb3" xlink:href="#kb3"/></animateMotion></circle>
   <circle r="5" fill="#6C8EBF" opacity="0.85"><animateMotion dur="1.2s" repeatCount="indefinite" begin="2.4s"><mpath href="#kb3" xlink:href="#kb3"/></animateMotion></circle>
+
+  <!-- p_re2sum: ReEmbed→GenSum (green, triggers re-summary) ×2 -->
+  <circle r="5" fill="#82B366" opacity="0.9"><animateMotion dur="2.2s" repeatCount="indefinite" begin="1.9s"><mpath href="#p_re2sum" xlink:href="#p_re2sum"/></animateMotion></circle>
+  <circle r="5" fill="#82B366" opacity="0.9"><animateMotion dur="2.2s" repeatCount="indefinite" begin="3.0s"><mpath href="#p_re2sum" xlink:href="#p_re2sum"/></animateMotion></circle>
 
   <!-- kb4: SaveSum→MetaSum (green) ×2 -->
   <circle r="5" fill="#82B366" opacity="0.85"><animateMotion dur="2.0s" repeatCount="indefinite" begin="1.8s"><mpath href="#kb4" xlink:href="#kb4"/></animateMotion></circle>
