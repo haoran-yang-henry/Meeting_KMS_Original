@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { CHAT_MODEL, embedText, NANO_MODEL, openaiConfigured, responsesFetch } from "../_shared/openai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,11 +116,8 @@ async function routeToTool(
 ): Promise<AgentToolCall> {
   console.log("Routing query to appropriate tool...");
 
-  const chatEndpoint = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_ENDPOINT");
-  const chatApiKey = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_API_KEY");
-  
-  if (!chatEndpoint || !chatApiKey) {
-    console.log("Azure Foundry GPT-5.2-Chat credentials not configured, using fallback heuristics");
+  if (!openaiConfigured()) {
+    console.log("OPENAI_API_KEY not configured, using fallback heuristics");
     return fallbackToolRouting(query, hasSummaryContext, hasTranscriptId);
   }
 
@@ -159,19 +157,12 @@ Always use the route_to_tool function to provide your analysis.`;
   ];
 
   try {
-    const response = await fetch(chatEndpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${chatApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-5.2-chat",
+    const response = await responsesFetch({
+        model: CHAT_MODEL,
         input: inputMessages,
         tools: [agentToolDefinition],
         tool_choice: { type: "function", name: "route_to_tool" },
         max_output_tokens: 500,
-      }),
     });
 
     if (!response.ok) {
@@ -313,26 +304,9 @@ interface RetrievedSegment {
 /**
  * FR4.2 - Step 1: Convert query to embedding vector
  */
-async function getQueryEmbedding(query: string, endpoint: string, apiKey: string): Promise<number[]> {
+async function getQueryEmbedding(query: string): Promise<number[]> {
   console.log("Generating query embedding...");
-
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": apiKey,
-    },
-    body: JSON.stringify({ input: [query] }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Embedding error:", errorText);
-    throw new Error(`Embedding error: ${response.status}`);
-  }
-
-  const result = await response.json();
-  return result.data[0].embedding;
+  return await embedText(query);
 }
 
 /**
@@ -505,8 +479,6 @@ async function callReasoningModel(
   segments: RetrievedSegment[],
   conversationHistory: ConversationMessage[],
   summaryContext: string | undefined,
-  endpoint: string,
-  apiKey: string,
   isCrossTranscript: boolean = false,
 ): Promise<string> {
   console.log("Calling Azure GPT-5.2-Chat (Responses API)...");
@@ -633,17 +605,10 @@ ${isCrossTranscript ? "- Mention which meeting the information comes from when r
   console.log(`Context length: ${contextLength} chars, ${inputMessages.length} messages`);
 
   // Use Responses API format for GPT-5.2-Chat
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-5.2-chat",
+  const response = await responsesFetch({
+      model: CHAT_MODEL,
       input: inputMessages,
       max_output_tokens: 4000,
-    }),
   });
 
   if (!response.ok) {
@@ -673,8 +638,6 @@ ${isCrossTranscript ? "- Mention which meeting the information comes from when r
 async function callGeneralChat(
   query: string,
   conversationHistory: ConversationMessage[],
-  endpoint: string,
-  apiKey: string,
 ): Promise<string> {
   console.log("Calling Azure GPT-5.2-Chat for general chat (Responses API)...");
 
@@ -693,17 +656,10 @@ async function callGeneralChat(
   console.log(`General chat context length: ${contextLength} chars`);
 
   // Use Responses API format
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-5.2-chat",
+  const response = await responsesFetch({
+      model: CHAT_MODEL,
       input: inputMessages,
       max_output_tokens: 4000,
-    }),
   });
 
   if (!response.ok) {
@@ -733,8 +689,6 @@ async function callSummarySearch(
   query: string,
   summaryContext: string,
   conversationHistory: ConversationMessage[],
-  endpoint: string,
-  apiKey: string,
 ): Promise<string> {
   console.log("search_summary tool - answering from summary...");
 
@@ -754,17 +708,10 @@ INSTRUCTIONS:
     { role: "user", content: query },
   ];
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-5.2-chat",
+  const response = await responsesFetch({
+      model: CHAT_MODEL,
       input: inputMessages,
       max_output_tokens: 2000,
-    }),
   });
 
   if (!response.ok) {
@@ -1023,8 +970,6 @@ async function callMetadataReasoningModel(
   query: string,
   meetings: RetrievedSegment[],
   conversationHistory: ConversationMessage[],
-  endpoint: string,
-  apiKey: string,
 ): Promise<string> {
   console.log("Calling Azure GPT-5.2-Chat for metadata query (Responses API)...");
 
@@ -1106,17 +1051,10 @@ INSTRUCTIONS:
   ];
 
   // Use Responses API format
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-5.2-chat",
+  const response = await responsesFetch({
+      model: CHAT_MODEL,
       input: inputMessages,
       max_output_tokens: 4000,
-    }),
   });
 
   if (!response.ok) {
@@ -1151,12 +1089,9 @@ async function analyzeAdjustmentIntent(
 ): Promise<SummaryAdjustmentIntent> {
   console.log("Analyzing adjustment intent with reasoning model...");
   
-  const reasoningEndpoint = Deno.env.get("AZURE_AI_FOUNDRY_GPT5NANO_ENDPOINT");
-  const reasoningApiKey = Deno.env.get("AZURE_AI_FOUNDRY_GPT5NANO_API_KEY");
-  
   // Fallback to heuristics if reasoning model not available
-  if (!reasoningEndpoint || !reasoningApiKey) {
-    console.log("Reasoning model not configured, using heuristics");
+  if (!openaiConfigured()) {
+    console.log("OPENAI_API_KEY not configured, using heuristics");
     return heuristicIntentAnalysis(userRequest);
   }
 
@@ -1238,22 +1173,15 @@ Return a JSON object with your analysis.`;
   };
 
   try {
-    const response = await fetch(reasoningEndpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${reasoningApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-5-nano",
+    const response = await responsesFetch({
+        model: NANO_MODEL,
         input: [
           { role: "system", content: "You are an intent analysis expert. Analyze the user's request carefully and determine their true intent." },
           { role: "user", content: analysisPrompt }
         ],
         tools: [toolDef],
-        tool_choice: { type: "function", function: { name: "analyze_adjustment_intent" } },
+        tool_choice: { type: "function", name: "analyze_adjustment_intent" },
         max_output_tokens: 1000,
-      }),
     });
 
     if (!response.ok) {
@@ -1334,8 +1262,6 @@ async function adjustSummaryWithAI(
   currentSummary: string,
   originalSummary: string,
   transcriptContent: string,
-  endpoint: string,
-  apiKey: string,
 ): Promise<string> {
   console.log("Adjusting summary with reasoning-first approach...");
 
@@ -1445,17 +1371,10 @@ Return ONLY the adjusted summary text, no labels or prefixes.`;
   console.log(`System prompt length: ${systemPrompt.length} chars`);
 
   // Use Responses API format
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-5.2-chat",
+  const response = await responsesFetch({
+      model: CHAT_MODEL,
       input: inputMessages,
       max_output_tokens: 4000,
-    }),
   });
 
   if (!response.ok) {
@@ -1492,12 +1411,9 @@ serve(async (req) => {
       throw new Error("Missing required field: query");
     }
 
-    // Get credentials (GPT-5.2-Chat with Responses API)
-    const openaiEndpoint = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_ENDPOINT");
-    const openaiApiKey = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_API_KEY");
-
-    if (!openaiEndpoint || !openaiApiKey) {
-      throw new Error("Azure GPT-5.2-Chat credentials not configured");
+    // Get credentials (OpenAI)
+    if (!openaiConfigured()) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
 
     // Use 4-tool agent routing
@@ -1513,7 +1429,7 @@ serve(async (req) => {
     // Handle general chat (no context)
     if (!transcriptId && !useRAG && !summaryContext) {
       console.log("General chat mode - no transcript");
-      const answer = await callGeneralChat(query, conversationHistory || [], openaiEndpoint, openaiApiKey);
+      const answer = await callGeneralChat(query, conversationHistory || []);
 
       return new Response(
         JSON.stringify({
@@ -1558,12 +1474,10 @@ serve(async (req) => {
       }
 
       const adjustedSummary = await adjustSummaryWithAI(
-        enhancedRequest, 
-        summaryContext, 
-        originalSummary || summaryContext, 
-        transcriptContent, 
-        openaiEndpoint, 
-        openaiApiKey
+        enhancedRequest,
+        summaryContext,
+        originalSummary || summaryContext,
+        transcriptContent
       );
 
       return new Response(
@@ -1584,7 +1498,7 @@ serve(async (req) => {
       console.log("search_summary tool - searching within summary");
       
       // Use the summary as context for the question
-      const answer = await callSummarySearch(query, summaryContext, conversationHistory || [], openaiEndpoint, openaiApiKey);
+      const answer = await callSummarySearch(query, summaryContext, conversationHistory || []);
 
       return new Response(
         JSON.stringify({
@@ -1605,14 +1519,9 @@ serve(async (req) => {
     const searchEndpoint = Deno.env.get("AZURE_SEARCH_ENDPOINT");
     const searchApiKey = Deno.env.get("AZURE_SEARCH_API_KEY");
     const indexName = Deno.env.get("AZURE_SEARCH_INDEX_NAME");
-    const foundryEndpoint = Deno.env.get("AZURE_AI_FOUNDRY_TEXTEMBEDDING3L_ENDPOINT");
-    const foundryApiKey = Deno.env.get("AZURE_AI_FOUNDRY_TEXTEMBEDDING3L_API_KEY");
 
     if (!searchEndpoint || !searchApiKey || !indexName) {
       throw new Error("Azure Search credentials not configured");
-    }
-    if (!foundryEndpoint || !foundryApiKey) {
-      throw new Error("Azure AI Foundry Text Embedding credentials not configured");
     }
 
     const isCrossTranscript = useRAG && !transcriptId;
@@ -1626,8 +1535,6 @@ serve(async (req) => {
         query,
         allMeetings,
         conversationHistory || [],
-        openaiEndpoint,
-        openaiApiKey,
       );
 
       return new Response(
@@ -1675,7 +1582,7 @@ serve(async (req) => {
     } else {
       // search_transcript: Vector search for relevant segments
       console.log(`search_transcript tool - performing vector search`);
-      const queryVector = await getQueryEmbedding(query, foundryEndpoint, foundryApiKey);
+      const queryVector = await getQueryEmbedding(query);
 
       retrievedSegments = await vectorSearch(
         queryVector,
@@ -1734,8 +1641,6 @@ serve(async (req) => {
       retrievedSegments,
       conversationHistory || [],
       summaryContext,
-      openaiEndpoint,
-      openaiApiKey,
       isCrossTranscript,
     );
 

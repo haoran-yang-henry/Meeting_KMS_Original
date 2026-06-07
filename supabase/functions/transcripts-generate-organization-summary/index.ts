@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { CHAT_MODEL, openaiConfigured, responsesFetch } from "../_shared/openai.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -122,11 +123,9 @@ serve(async (req) => {
         }
       }
 
-      // Use Azure GPT-5.2-Chat for organization summary
-      const AZURE_CHAT_ENDPOINT = Deno.env.get('AZURE_FOUNDRY_GPT52CHAT_ENDPOINT');
-      const AZURE_CHAT_API_KEY = Deno.env.get('AZURE_FOUNDRY_GPT52CHAT_API_KEY');
-      if (!AZURE_CHAT_ENDPOINT || !AZURE_CHAT_API_KEY) {
-        throw new Error('Azure GPT-5.2-Chat configuration is missing');
+      // Use OpenAI for organization summary
+      if (!openaiConfigured()) {
+        throw new Error('OPENAI_API_KEY is not configured');
       }
 
       const systemPrompt = `You are an organizational summary generator. Your task is to create a high-level organizational summary by synthesizing all project summaries and meeting information across the entire organization.
@@ -147,20 +146,13 @@ ${contextText}
 
 Provide a cohesive organization-level summary that captures the overall state, strategic direction, and key priorities across the entire organization.`;
 
-      const response = await fetch(AZURE_CHAT_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${AZURE_CHAT_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-5.2-chat',
+      const response = await responsesFetch({
+          model: CHAT_MODEL,
           input: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
           max_output_tokens: 1500,
-        }),
       });
 
       if (!response.ok) {

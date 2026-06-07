@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { chatCompletionsFetch, NANO_MODEL, openaiConfigured } from "../_shared/openai.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,22 +21,14 @@ interface SaveSummaryRequest {
  * Returns: "ongoing" | "positive" | "negative" | "warning"
  */
 async function analyzeStatus(summaryText: string): Promise<string> {
-  const azureEndpoint = Deno.env.get('AZURE_AI_FOUNDRY_GPT5NANO_ENDPOINT');
-  const azureApiKey = Deno.env.get('AZURE_AI_FOUNDRY_GPT5NANO_API_KEY');
-  
-  if (!azureEndpoint || !azureApiKey) {
-    console.log('Azure AI Foundry GPT-5-Nano credentials not configured, defaulting to ongoing');
+  if (!openaiConfigured()) {
+    console.log('OPENAI_API_KEY not configured, defaulting to ongoing');
     return 'ongoing';
   }
 
   try {
-    const response = await fetch(`${azureEndpoint}/openai/deployments/gpt-5-nano/chat/completions?api-version=2024-02-15-preview`, {
-      method: 'POST',
-      headers: {
-        'api-key': azureApiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const response = await chatCompletionsFetch({
+        model: NANO_MODEL,
         messages: [
           {
             role: 'system',
@@ -55,12 +48,11 @@ Just return the single word.`
           }
         ],
         max_tokens: 10,
-      }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Azure OpenAI analysis failed:', response.status, errorText);
+      console.error('OpenAI status analysis failed:', response.status, errorText);
       return 'ongoing';
     }
 

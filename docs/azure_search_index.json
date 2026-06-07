@@ -1,0 +1,64 @@
+{
+  "name": "meeting-kms-index",
+  "fields": [
+    { "name": "id", "type": "Edm.String", "key": true, "searchable": false, "filterable": true, "sortable": true, "facetable": false, "retrievable": true },
+
+    { "name": "docType", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": true, "facetable": true, "retrievable": true },
+    { "name": "transcriptId", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": true, "facetable": false, "retrievable": true },
+    { "name": "segmentId", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": true, "facetable": false, "retrievable": true },
+
+    { "name": "text", "type": "Edm.String", "searchable": true, "filterable": false, "sortable": false, "facetable": false, "retrievable": true, "analyzer": "standard.lucene" },
+    { "name": "speaker", "type": "Edm.String", "searchable": true, "filterable": true, "sortable": false, "facetable": true, "retrievable": true },
+    { "name": "startTime", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": true, "facetable": false, "retrievable": true },
+    { "name": "endTime", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": true, "facetable": false, "retrievable": true },
+
+    { "name": "meetingTitle", "type": "Edm.String", "searchable": true, "filterable": true, "sortable": true, "facetable": false, "retrievable": true },
+    { "name": "title", "type": "Edm.String", "searchable": true, "filterable": true, "sortable": true, "facetable": false, "retrievable": true },
+    { "name": "meetingDate", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": true, "facetable": false, "retrievable": true },
+    { "name": "date", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": true, "facetable": false, "retrievable": true },
+
+    { "name": "project", "type": "Edm.String", "searchable": true, "filterable": true, "sortable": true, "facetable": true, "retrievable": true },
+    { "name": "group", "type": "Edm.String", "searchable": true, "filterable": true, "sortable": true, "facetable": true, "retrievable": true },
+    { "name": "status", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": true, "facetable": true, "retrievable": true },
+
+    { "name": "topic", "type": "Edm.String", "searchable": true, "filterable": true, "sortable": true, "facetable": true, "retrievable": true },
+    { "name": "topics", "type": "Collection(Edm.String)", "searchable": true, "filterable": true, "sortable": false, "facetable": true, "retrievable": true },
+    { "name": "tags", "type": "Collection(Edm.String)", "searchable": true, "filterable": true, "sortable": false, "facetable": true, "retrievable": true },
+    { "name": "keywords", "type": "Collection(Edm.String)", "searchable": true, "filterable": true, "sortable": false, "facetable": true, "retrievable": true },
+
+    { "name": "summaryText", "type": "Edm.String", "searchable": true, "filterable": false, "sortable": false, "facetable": false, "retrievable": true, "analyzer": "standard.lucene" },
+    { "name": "summaryTags", "type": "Collection(Edm.String)", "searchable": true, "filterable": true, "sortable": false, "facetable": true, "retrievable": true },
+    { "name": "personalSummary", "type": "Edm.String", "searchable": true, "filterable": false, "sortable": false, "facetable": false, "retrievable": true },
+    { "name": "projectSummary", "type": "Edm.String", "searchable": true, "filterable": false, "sortable": false, "facetable": false, "retrievable": true },
+    { "name": "organizationSummary", "type": "Edm.String", "searchable": true, "filterable": false, "sortable": false, "facetable": false, "retrievable": true },
+    { "name": "summaryUpdatedAt", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": true, "facetable": false, "retrievable": true },
+
+    { "name": "rawTranscriptStoragePath", "type": "Edm.String", "searchable": false, "filterable": false, "sortable": false, "facetable": false, "retrievable": true },
+    { "name": "correctedTranscriptStoragePath", "type": "Edm.String", "searchable": false, "filterable": false, "sortable": false, "facetable": false, "retrievable": true },
+    { "name": "version", "type": "Edm.Int32", "searchable": false, "filterable": true, "sortable": true, "facetable": false, "retrievable": true },
+
+    {
+      "name": "embedding",
+      "type": "Collection(Edm.Single)",
+      "searchable": true,
+      "filterable": false,
+      "sortable": false,
+      "facetable": false,
+      "retrievable": false,
+      "dimensions": 3072,
+      "vectorSearchProfile": "vector-profile"
+    }
+  ],
+  "vectorSearch": {
+    "algorithms": [
+      {
+        "name": "hnsw-algo",
+        "kind": "hnsw",
+        "hnswParameters": { "m": 4, "efConstruction": 400, "efSearch": 500, "metric": "cosine" }
+      }
+    ],
+    "profiles": [
+      { "name": "vector-profile", "algorithm": "hnsw-algo" }
+    ]
+  }
+}

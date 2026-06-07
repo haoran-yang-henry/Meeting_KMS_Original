@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { CHAT_MODEL, openaiConfigured, responsesFetch } from "../_shared/openai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,10 +64,8 @@ async function fetchTranscriptSegments(
 async function generateSummaryWithAI(
   segments: string[],
   options: { includeDecisions: boolean; includeActionItems: boolean; includeTopicTags: boolean },
-  endpoint: string,
-  apiKey: string,
 ): Promise<GeneratedSummary> {
-  console.log("Generating summary with Azure AI Foundry GPT-5.2-Chat...");
+  console.log("Generating summary with OpenAI...");
 
   // With 150M tokens/min quota, we can be generous - take more segments for better coverage
   const maxSegments = 300;
@@ -152,15 +151,9 @@ Format your response as valid JSON:
 
 Return valid JSON only, no markdown or extra text.`;
 
-  // Use Responses API format for GPT-5.2-Chat
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-5.2-chat",
+  // Use OpenAI Responses API
+  const response = await responsesFetch({
+      model: CHAT_MODEL,
       input: [
         {
           role: "system",
@@ -173,12 +166,11 @@ Return valid JSON only, no markdown or extra text.`;
         },
       ],
       max_output_tokens: 8000,
-    }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Azure AI Foundry error:", errorText);
+    console.error("OpenAI error:", errorText);
     throw new Error(`Summary generation failed: ${response.status}`);
   }
 
@@ -454,11 +446,8 @@ serve(async (req) => {
     const searchEndpoint = Deno.env.get("AZURE_SEARCH_ENDPOINT");
     const searchApiKey = Deno.env.get("AZURE_SEARCH_API_KEY");
     const indexName = Deno.env.get("AZURE_SEARCH_INDEX_NAME");
-    const gpt52Endpoint = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_ENDPOINT");
-    const gpt52ApiKey = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_API_KEY");
-
-    if (!gpt52Endpoint || !gpt52ApiKey) {
-      throw new Error("Azure AI Foundry GPT-5.2-Chat credentials not configured");
+    if (!openaiConfigured()) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
 
     console.log(`FR5.1 - Generating summary for transcript: ${transcriptId}`);
@@ -494,8 +483,6 @@ serve(async (req) => {
     const summary = await generateSummaryWithAI(
       segments,
       { includeDecisions, includeActionItems, includeTopicTags },
-      gpt52Endpoint,
-      gpt52ApiKey,
     );
 
     console.log("FR5.1 - Summary generated successfully");

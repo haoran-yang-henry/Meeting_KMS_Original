@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { embedTexts, openaiConfigured } from "../_shared/openai.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -497,40 +498,6 @@ function cleanSegments(segments: TranscriptSegment[]): TranscriptSegment[] {
   }));
 }
 
-/**
- * Get embeddings from Azure AI Foundry
- */
-async function getEmbeddings(texts: string[], endpoint: string, apiKey: string): Promise<number[][]> {
-  console.log('Calling embeddings URL:', endpoint);
-  
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'api-key': apiKey,
-    },
-    body: JSON.stringify({ input: texts }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Azure AI Foundry error:', errorText);
-    throw new Error(`Azure AI Foundry error: ${response.status} - ${errorText}`);
-  }
-
-  const responseText = await response.text();
-  let jsonData = responseText;
-  
-  if (responseText.startsWith('data: ')) {
-    const lines = responseText.split('\n').filter(line => line.startsWith('data: '));
-    const lastDataLine = lines[lines.length - 1];
-    jsonData = lastDataLine.replace('data: ', '');
-  }
-  
-  const result = JSON.parse(jsonData);
-  return result.data.map((item: { embedding: number[] }) => item.embedding);
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -553,15 +520,13 @@ serve(async (req) => {
     const searchEndpoint = Deno.env.get('AZURE_SEARCH_ENDPOINT');
     const searchApiKey = Deno.env.get('AZURE_SEARCH_API_KEY');
     const indexName = Deno.env.get('AZURE_SEARCH_INDEX_NAME');
-    const foundryEndpoint = Deno.env.get('AZURE_AI_FOUNDRY_TEXTEMBEDDING3L_ENDPOINT');
-    const foundryApiKey = Deno.env.get('AZURE_AI_FOUNDRY_TEXTEMBEDDING3L_API_KEY');
 
     if (!searchEndpoint || !searchApiKey || !indexName) {
       throw new Error('Azure Search credentials not configured');
     }
 
-    if (!foundryEndpoint || !foundryApiKey) {
-      throw new Error('Azure AI Foundry Text Embedding credentials not configured');
+    if (!openaiConfigured()) {
+      throw new Error('OPENAI_API_KEY is not configured');
     }
 
     // FR1.3 - Generate transcript ID
@@ -590,7 +555,7 @@ serve(async (req) => {
       const batch = segmentTexts.slice(i, i + batchSize);
       console.log(`Embedding batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(segmentTexts.length / batchSize)}`);
       
-      const embeddings = await getEmbeddings(batch, foundryEndpoint, foundryApiKey);
+      const embeddings = await embedTexts(batch);
       
       for (let j = 0; j < batch.length; j++) {
         embeddedSegments.push({

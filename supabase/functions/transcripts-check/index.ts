@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { CHAT_MODEL, openaiConfigured, responsesFetch } from "../_shared/openai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -167,21 +168,14 @@ async function callModel(prompt: string, config: ModelConfig): Promise<string> {
     return content;
   }
 
-  // 3) Azure AI Foundry Responses API
-  const response = await fetch(config.endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-5.2-chat", // Required by Azure AI Foundry
+  // 3) OpenAI Responses API
+  const response = await responsesFetch({
+      model: CHAT_MODEL,
       input: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
       ],
       max_output_tokens: 2000,
-    }),
   });
 
   if (!response.ok) {
@@ -211,20 +205,17 @@ async function callModel(prompt: string, config: ModelConfig): Promise<string> {
   return content;
 }
 
-// 使用 Azure AI Foundry gpt-5.2-chat 模型
+// 使用 OpenAI 模型
 async function callWithFallback(prompt: string): Promise<string> {
-  const foundryChatEndpoint = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_ENDPOINT");
-  const foundryChatKey = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_API_KEY");
-
-  if (!foundryChatEndpoint || !foundryChatKey) {
-    throw new Error("AZURE_FOUNDRY_GPT52CHAT_ENDPOINT and AZURE_FOUNDRY_GPT52CHAT_API_KEY are required");
+  if (!openaiConfigured()) {
+    throw new Error("OPENAI_API_KEY is required");
   }
 
   const config: ModelConfig = {
-    name: "gpt-5.2-chat",
+    name: CHAT_MODEL,
     provider: "azure_responses",
-    endpoint: foundryChatEndpoint,
-    apiKey: foundryChatKey,
+    endpoint: "",
+    apiKey: "",
     useReasoningEffort: false,
   };
 

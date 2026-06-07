@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { embedTexts, openaiConfigured } from "../_shared/openai.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,43 +65,6 @@ function chunkTranscript(transcript: string, chunkSize: number = 500, overlap: n
   return chunks;
 }
 
-// Get embeddings from Azure AI Foundry
-async function getEmbeddings(texts: string[], endpoint: string, apiKey: string): Promise<number[][]> {
-  // Use endpoint directly - it should be the full URL including deployment
-  console.log('Calling embeddings URL:', endpoint);
-  
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'api-key': apiKey,
-    },
-    body: JSON.stringify({
-      input: texts,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Azure AI Foundry error:', errorText);
-    throw new Error(`Azure AI Foundry error: ${response.status} - ${errorText}`);
-  }
-
-  const responseText = await response.text();
-  
-  // Handle SSE format if returned (some Azure endpoints return SSE)
-  let jsonData: string = responseText;
-  if (responseText.startsWith('data: ')) {
-    // Extract JSON from SSE format - get the last complete data line
-    const lines = responseText.split('\n').filter(line => line.startsWith('data: '));
-    const lastDataLine = lines[lines.length - 1];
-    jsonData = lastDataLine.replace('data: ', '');
-  }
-  
-  const result = JSON.parse(jsonData);
-  return result.data.map((item: { embedding: number[] }) => item.embedding);
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -109,11 +73,8 @@ serve(async (req) => {
   try {
     const { transcript, documentId, metadata } = await req.json();
 
-    const endpoint = Deno.env.get('AZURE_AI_FOUNDRY_TEXTEMBEDDING3L_ENDPOINT');
-    const apiKey = Deno.env.get('AZURE_AI_FOUNDRY_TEXTEMBEDDING3L_API_KEY');
-
-    if (!endpoint || !apiKey) {
-      throw new Error('Azure AI Foundry Text Embedding credentials not configured');
+    if (!openaiConfigured()) {
+      throw new Error('OPENAI_API_KEY is not configured');
     }
 
     if (!transcript || transcript.trim().length === 0) {
@@ -137,7 +98,7 @@ serve(async (req) => {
       const batch = chunkTexts.slice(i, i + batchSize);
       console.log(`Processing embedding batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(chunkTexts.length / batchSize)}`);
       
-      const embeddings = await getEmbeddings(batch, endpoint, apiKey);
+      const embeddings = await embedTexts(batch);
       
       for (let j = 0; j < batch.length; j++) {
         embeddedChunks.push({
