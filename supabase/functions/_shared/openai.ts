@@ -4,8 +4,8 @@
 // secrets:
 //   OPENAI_API_KEY      - required, your OpenAI API key (sk-...)
 //   OPENAI_BASE_URL     - optional, defaults to https://api.openai.com/v1
-//   OPENAI_CHAT_MODEL   - optional, defaults to gpt-4o   (was "gpt-5.2-chat")
-//   OPENAI_NANO_MODEL   - optional, defaults to gpt-4o-mini (was "gpt-5-nano")
+//   OPENAI_CHAT_MODEL   - optional, defaults to gpt-5.2-chat-latest
+//   OPENAI_NANO_MODEL   - optional, defaults to gpt-5-nano
 //   OPENAI_EMBED_MODEL  - optional, defaults to text-embedding-3-large (3072 dims)
 //
 // NOTE: OPENAI_EMBED_MODEL must match the `dimensions` of the `embedding` field
@@ -14,8 +14,8 @@
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
 const OPENAI_BASE_URL = (Deno.env.get("OPENAI_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/+$/, "");
 
-export const CHAT_MODEL = Deno.env.get("OPENAI_CHAT_MODEL") ?? "gpt-4o";
-export const NANO_MODEL = Deno.env.get("OPENAI_NANO_MODEL") ?? "gpt-4o-mini";
+export const CHAT_MODEL = Deno.env.get("OPENAI_CHAT_MODEL") ?? "gpt-5.2-chat-latest";
+export const NANO_MODEL = Deno.env.get("OPENAI_NANO_MODEL") ?? "gpt-5-nano";
 export const EMBED_MODEL = Deno.env.get("OPENAI_EMBED_MODEL") ?? "text-embedding-3-large";
 
 export function openaiConfigured(): boolean {

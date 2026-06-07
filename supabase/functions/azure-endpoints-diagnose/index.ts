@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { CHAT_MODEL, EMBED_MODEL, openaiConfigured, responsesFetch } from "../_shared/openai.ts";
+import { chatCompletionsFetch, CHAT_MODEL, EMBED_MODEL, NANO_MODEL, openaiConfigured, responsesFetch } from "../_shared/openai.ts";
 
 // Diagnostic endpoint: verifies the rebuilt backend can reach
 //   1) OpenAI embeddings   (text-embedding-3-large by default)
-//   2) OpenAI responses     (gpt-4o by default)
-//   3) Azure AI Search      (the configured index)
+//   2) OpenAI responses     (gpt-5.2-chat-latest by default)
+//   3) OpenAI nano (chat)   (gpt-5-nano by default)
+//   4) Azure AI Search      (the configured index)
 //
 // Call it after wiring up secrets to confirm everything is reachable:
 //   curl -X POST "$SUPABASE_URL/functions/v1/azure-endpoints-diagnose" \
@@ -67,6 +68,22 @@ async function probeOpenAIResponses(): Promise<ProbeResult> {
   return { name: "openai_responses", ok: false, status: resp.status, detail: summarizeError(await resp.text()) };
 }
 
+async function probeOpenAINano(): Promise<ProbeResult> {
+  if (!openaiConfigured()) {
+    return { name: "openai_nano", ok: false, status: 0, detail: "OPENAI_API_KEY not set" };
+  }
+  const resp = await chatCompletionsFetch({
+    model: NANO_MODEL,
+    messages: [{ role: "user", content: "ping" }],
+    max_completion_tokens: 16,
+  });
+  if (resp.ok) {
+    await resp.text();
+    return { name: "openai_nano", ok: true, status: resp.status, detail: `model=${NANO_MODEL}` };
+  }
+  return { name: "openai_nano", ok: false, status: resp.status, detail: summarizeError(await resp.text()) };
+}
+
 async function probeAzureSearch(): Promise<ProbeResult> {
   const endpoint = (Deno.env.get("AZURE_SEARCH_ENDPOINT") ?? "").replace(/\/+$/, "");
   const apiKey = Deno.env.get("AZURE_SEARCH_API_KEY") ?? "";
@@ -103,6 +120,7 @@ serve(async (req) => {
     const results = await Promise.all([
       probeOpenAIEmbeddings(),
       probeOpenAIResponses(),
+      probeOpenAINano(),
       probeAzureSearch(),
     ]);
 

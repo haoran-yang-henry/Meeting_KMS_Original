@@ -47,7 +47,7 @@ Just return the single word.`
             content: `Analyze this meeting summary and return the status:\n\n${summaryText.slice(0, 2000)}`
           }
         ],
-        max_tokens: 10,
+        max_completion_tokens: 10,
     });
 
     if (!response.ok) {
