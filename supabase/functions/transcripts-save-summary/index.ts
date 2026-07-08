@@ -1,18 +1,15 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { serveWithAuth } from "../_shared/auth.ts";
+import { json } from "../_shared/cors.ts";
+import { getOpenAIKey, MINI_MODEL, OPENAI_CHAT_COMPLETIONS_URL } from "../_shared/openai.ts";
 
 interface SaveSummaryRequest {
   transcriptId: string;
-  summaryText?: string;  // Group summary - initial + after corrections
-  personalSummary?: string;  // Personal summary - user-adjusted via adjust_summary tool
+  summaryText?: string; // Group summary - initial + after corrections
+  personalSummary?: string; // Personal summary - user-adjusted via adjust_summary tool
   keywords?: string[];
   project?: string;
   topic?: string;
-  topics?: string[];  // Alternative array format for topics
+  topics?: string[]; // Alternative array format for topics
 }
 
 /**
@@ -20,27 +17,27 @@ interface SaveSummaryRequest {
  * Returns: "ongoing" | "positive" | "negative" | "warning"
  */
 async function analyzeStatus(summaryText: string): Promise<string> {
-  const azureEndpoint = Deno.env.get('AZURE_AI_FOUNDRY_GPT5NANO_ENDPOINT');
-  const azureApiKey = Deno.env.get('AZURE_AI_FOUNDRY_GPT5NANO_API_KEY');
-  
-  if (!azureEndpoint || !azureApiKey) {
-    console.log('Azure AI Foundry GPT-5-Nano credentials not configured, defaulting to ongoing');
+  const apiKey = getOpenAIKey();
+
+  if (!apiKey) {
+    console.log('OPENAI_API_KEY not configured, defaulting to ongoing');
     return 'ongoing';
   }
 
   try {
-    const response = await fetch(`${azureEndpoint}/openai/deployments/gpt-5-nano/chat/completions?api-version=2024-02-15-preview`, {
+    const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
       method: 'POST',
       headers: {
-        'api-key': azureApiKey,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        model: MINI_MODEL,
         messages: [
           {
             role: 'system',
             content: `You are a project status analyzer. Analyze the meeting summary and determine the overall status/sentiment.
-            
+
 Return ONLY ONE of these exact words (no explanation, no punctuation):
 - "ongoing" - neutral progress, routine updates, work in progress
 - "positive" - good news, achievements, successful outcomes, milestones reached
@@ -54,23 +51,23 @@ Just return the single word.`
             content: `Analyze this meeting summary and return the status:\n\n${summaryText.slice(0, 2000)}`
           }
         ],
-        max_tokens: 10,
+        max_completion_tokens: 20,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Azure OpenAI analysis failed:', response.status, errorText);
+      console.error('OpenAI status analysis failed:', response.status, errorText);
       return 'ongoing';
     }
 
     const data = await response.json();
     const result = data.choices?.[0]?.message?.content?.toLowerCase().trim() || 'ongoing';
-    
+
     // Validate the response
     const validStatuses = ['ongoing', 'positive', 'negative', 'warning'];
     const status = validStatuses.find(s => result.includes(s)) || 'ongoing';
-    
+
     console.log(`Status analysis result: ${status}`);
     return status;
   } catch (error) {
@@ -79,183 +76,81 @@ Just return the single word.`
   }
 }
 
-async function updateMetadataDocument(
-  transcriptId: string,
-  summaryText: string | undefined,
-  personalSummary: string | undefined,
-  keywords: string[] | undefined,
-  project: string | undefined,
-  topic: string | undefined,
-  status: string | undefined,
-  searchEndpoint: string,
-  searchApiKey: string,
-  indexName: string
-): Promise<boolean> {
-  console.log(`Updating metadata document for transcript: ${transcriptId}`);
-  console.log(`Project: ${project}, Topic: ${topic}, Status: ${status}, Keywords: ${keywords?.join(', ') || 'none provided'}`);
-  
-  const azureUrl = `${searchEndpoint}/indexes/${indexName}/docs/index?api-version=2023-11-01`;
-  
-  // Build update document with only provided fields to avoid overwriting existing data
-  const mergeFields: Record<string, any> = {
-    "@search.action": "merge",
-    id: transcriptId,
+serveWithAuth(async ({ req, user, supabase }) => {
+  const { transcriptId, summaryText, personalSummary, keywords, project, topic, topics }: SaveSummaryRequest = await req.json();
+
+  if (!transcriptId) {
+    return json({ error: "Missing required field: transcriptId" }, 400);
+  }
+
+  // Determine if this is a full save or metadata-only update
+  const isMetadataOnlyUpdate = summaryText === undefined && personalSummary === undefined;
+
+  // Resolve topic from either topic (string) or topics (array)
+  const resolvedTopic = topic !== undefined ? topic : (topics !== undefined ? topics[0] || "" : undefined);
+
+  console.log(`${isMetadataOnlyUpdate ? "Updating metadata" : "Saving summary"} for transcript: ${transcriptId}`);
+
+  // Only analyze status if we have summaryText (full save)
+  let status: string | undefined;
+  if (summaryText || personalSummary) {
+    status = await analyzeStatus(summaryText || personalSummary || "");
+  }
+
+  // Merge semantics: only touch fields that were explicitly provided
+  const mergeFields: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
   };
-  
-  // Only include fields that were explicitly provided
-  if (summaryText !== undefined) {
-    mergeFields.summaryText = summaryText;
-  }
-  
-  if (personalSummary !== undefined) {
-    mergeFields.personalSummary = personalSummary;
-  }
-  
-  if (status !== undefined) {
-    mergeFields.status = status;
-  }
-  
+  if (summaryText !== undefined) mergeFields.summary_text = summaryText;
+  if (personalSummary !== undefined) mergeFields.personal_summary = personalSummary;
+  if (status !== undefined) mergeFields.status = status;
   if (keywords !== undefined) {
-    const cleanKeywords = keywords.filter(k => !k.startsWith('status:'));
-    mergeFields.tags = cleanKeywords;
+    mergeFields.tags = keywords.filter((k) => !k.startsWith("status:"));
   }
-  
-  if (topic !== undefined) {
-    mergeFields.topics = topic ? [topic] : [];
+  if (resolvedTopic !== undefined) {
+    mergeFields.topic = resolvedTopic;
+    mergeFields.topics = resolvedTopic ? [resolvedTopic] : [];
   }
-  
-  if (project !== undefined) {
-    mergeFields.project = project;
-  }
-  
-  const updateDocument = {
-    value: [mergeFields]
-  };
+  if (project !== undefined) mergeFields.project = project;
 
-  console.log('Merge document:', JSON.stringify(updateDocument));
+  const { data: updated, error } = await supabase
+    .from("transcripts")
+    .update(mergeFields)
+    .eq("id", transcriptId)
+    .select("id");
 
-  const response = await fetch(azureUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'api-key': searchApiKey,
-    },
-    body: JSON.stringify(updateDocument),
+  if (error) {
+    console.error("Save summary error:", error);
+    return json({ error: "Failed to save summary" }, 500);
+  }
+
+  if (!updated || updated.length === 0) {
+    // Transcript row missing: create it if we at least have a summary
+    if (!summaryText) {
+      return json({ error: "Document not found. Cannot update metadata for non-existent transcript." }, 404);
+    }
+    console.log("Transcript not found, creating metadata row...");
+    const { error: insertError } = await supabase.from("transcripts").insert({
+      id: transcriptId,
+      user_id: user.id,
+      summary_text: summaryText,
+      tags: keywords ? keywords.filter((k) => !k.startsWith("status:")) : [],
+      topic: resolvedTopic || "",
+      topics: resolvedTopic ? [resolvedTopic] : [],
+      project: project || "",
+      status: status || "ongoing",
+    });
+    if (insertError) {
+      console.error("Insert fallback error:", insertError);
+      return json({ error: "Failed to save summary" }, 500);
+    }
+  }
+
+  console.log(isMetadataOnlyUpdate ? "Metadata updated successfully" : `Summary saved successfully with status: ${status}`);
+
+  return json({
+    success: true,
+    transcriptId,
+    status: status || "unchanged",
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Azure Search update error:', errorText);
-    
-    // If merging failed and we have summaryText, try upload
-    if ((response.status === 404 || errorText.includes('not found')) && summaryText) {
-      console.log('Document not found, attempting upload...');
-      
-      const uploadDocument = {
-        value: [{
-          "@search.action": "upload",
-          id: transcriptId,
-          docType: "metadata",
-          transcriptId: transcriptId,
-          summaryText: summaryText,
-          tags: keywords ? keywords.filter(k => !k.startsWith('status:')) : [],
-          topics: topic ? [topic] : [],
-          project: project || '',
-          status: status || 'ongoing',
-        }]
-      };
-
-      const uploadResponse = await fetch(azureUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': searchApiKey,
-        },
-        body: JSON.stringify(uploadDocument),
-      });
-
-      if (!uploadResponse.ok) {
-        const uploadError = await uploadResponse.text();
-        console.error('Azure Search upload error:', uploadError);
-        throw new Error(`Failed to save summary: ${uploadResponse.status}`);
-      }
-    } else if (response.status === 404 || errorText.includes('not found')) {
-      throw new Error('Document not found. Cannot update metadata for non-existent transcript.');
-    } else {
-      throw new Error(`Failed to update: ${response.status}`);
-    }
-  }
-
-  return true;
-}
-
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const { transcriptId, summaryText, personalSummary, keywords, project, topic, topics }: SaveSummaryRequest = await req.json();
-
-    if (!transcriptId) {
-      throw new Error('Missing required field: transcriptId');
-    }
-
-    // Determine if this is a full save or metadata-only update
-    const isMetadataOnlyUpdate = summaryText === undefined && personalSummary === undefined;
-    
-    // Resolve topic from either topic (string) or topics (array)
-    const resolvedTopic = topic !== undefined ? topic : (topics !== undefined ? topics[0] || '' : undefined);
-
-    const searchEndpoint = Deno.env.get('AZURE_SEARCH_ENDPOINT');
-    const searchApiKey = Deno.env.get('AZURE_SEARCH_API_KEY');
-    const indexName = Deno.env.get('AZURE_SEARCH_INDEX_NAME');
-
-    if (!searchEndpoint || !searchApiKey || !indexName) {
-      throw new Error('Azure Search credentials not configured');
-    }
-
-    console.log(`${isMetadataOnlyUpdate ? 'Updating metadata' : 'Saving summary'} for transcript: ${transcriptId}`);
-    if (personalSummary) {
-      console.log('Personal summary provided (from adjust_summary tool)');
-    }
-
-    // Only analyze status if we have summaryText (full save)
-    let status: string | undefined;
-    if (summaryText || personalSummary) {
-      status = await analyzeStatus(summaryText || personalSummary || '');
-    }
-
-    await updateMetadataDocument(
-      transcriptId,
-      summaryText,
-      personalSummary,
-      keywords,
-      project,
-      resolvedTopic,
-      status,
-      searchEndpoint,
-      searchApiKey,
-      indexName
-    );
-
-    console.log(isMetadataOnlyUpdate ? 'Metadata updated successfully' : 'Summary saved successfully with status:', status);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        transcriptId,
-        status: status || 'unchanged',
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
-  } catch (error) {
-    console.error('Error in transcripts-save-summary:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
 });

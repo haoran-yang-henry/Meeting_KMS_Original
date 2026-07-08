@@ -17,7 +17,7 @@ Upload → Parse → Correct → Summarize → Search
 
 ### System Architecture
 
-![System Architecture & Data Flow](docs/architecture.svg)
+![System Architecture & Data Flow](docu/architecture.svg)
 
 ---
 
@@ -58,8 +58,8 @@ Upload → Parse → Correct → Summarize → Search
 |---|---|
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
 | Backend | Supabase Edge Functions (Deno) |
-| AI Models | Azure OpenAI (chat + embeddings via Text-Embedding-3-Large) |
-| Search & Storage | Azure AI Search (hybrid vector + keyword) |
+| AI Models | OpenAI API (chat + embeddings via text-embedding-3-large) |
+| Search & Storage | Supabase Postgres + pgvector (hybrid vector + keyword, RLS) |
 | i18n | i18next — English & German |
 
 ---
@@ -68,9 +68,8 @@ Upload → Parse → Correct → Summarize → Search
 
 ### Prerequisites
 - Node.js 18+
-- A Supabase project
-- Azure AI Search index
-- Azure OpenAI deployments (chat model + embedding model)
+- A Supabase project (Postgres + pgvector for storage & search, Auth for login)
+- An OpenAI API key
 
 ### Installation
 
@@ -90,18 +89,17 @@ VITE_SUPABASE_PROJECT_ID=<your-project-id>
 VITE_SUPABASE_PUBLISHABLE_KEY=<your-anon-key>
 ```
 
-Set the following secrets in your **Supabase project dashboard**:
+Apply the database schema: run `supabase/migrations/20260708000000_initial_schema.sql` in the Supabase SQL Editor (or `supabase db push`).
+
+Set the following secrets in your **Supabase project dashboard** (Edge Functions → Secrets):
 
 ```
-AZURE_SEARCH_ENDPOINT
-AZURE_SEARCH_API_KEY
-AZURE_SEARCH_INDEX_NAME
+OPENAI_API_KEY           # required
 
-AZURE_FOUNDRY_GPT52CHAT_ENDPOINT
-AZURE_FOUNDRY_GPT52CHAT_API_KEY
-
-AZURE_AI_FOUNDRY_TEXTEMBEDDING3L_ENDPOINT
-AZURE_AI_FOUNDRY_TEXTEMBEDDING3L_API_KEY
+OPENAI_CHAT_MODEL        # optional, default: gpt-5.2-chat
+OPENAI_MINI_MODEL        # optional, default: gpt-5-nano
+OPENAI_EMBEDDING_MODEL   # optional, default: text-embedding-3-large
+ALLOWED_ORIGIN           # optional: lock CORS to your deployed frontend origin
 ```
 
 ### Run
@@ -173,26 +171,36 @@ interface TranscriptMetadata {
 
 ```
 src/
-├── pages/           # Index, Search, Dashboard
+├── pages/           # Auth, Index, Search, Dashboard
 ├── components/      # Correction, chat, summary, dashboard views
+├── contexts/        # Auth session provider
 ├── hooks/           # Business logic (workflow, correction, summary, search)
 ├── lib/             # Transcript parser, utilities
 ├── types/           # TypeScript interfaces
 └── i18n/            # en / de locale files
 
-supabase/functions/  # All backend edge functions
-docs/                # Architecture diagrams and sequence flows
+supabase/
+├── functions/       # Edge functions (per-endpoint folders)
+│   └── _shared/     # Auth wrapper, CORS, embeddings, parser
+└── migrations/      # Postgres schema (tables, RLS, hybrid_search)
+
+docu/                # Architecture diagram and sequence flows (tracked)
+docs/                # Local working files: drawio sources, HTML, video (git-ignored)
 ```
 
 ---
 
 ## Documentation
 
-Detailed architecture and sequence diagrams are in [`/docs`](./docs/):
+Detailed architecture and sequence diagrams are in [`/docu`](./docu/):
 
-- [`architecture.md`](./docs/architecture.md) — System overview with Mermaid diagram
-- [`functional_modules.md`](./docs/functional_modules.md) — In-depth module breakdown
-- Sequence diagrams for each pipeline stage (also available as rendered HTML)
+- [`architecture.md`](./docu/architecture.md) — System overview with Mermaid diagram
+- [`functional_modules.md`](./docu/functional_modules.md) — In-depth module breakdown
+- Sequence diagrams for each pipeline stage:
+  [ingestion](./docu/seq_transcript_capture_and_ingestion.md) ·
+  [correction](./docu/seq_context_integration_and_transcript_correction.md) ·
+  [summarization](./docu/seq_personalized_and_hierarchical_summary_generation.md) ·
+  [retrieval](./docu/seq_retrieval_multiview_navigation_and_visualization.md)
 
 ---
 

@@ -1,9 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { serveWithAuth } from "../_shared/auth.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import { getOpenAIKey, CHAT_MODEL, OPENAI_RESPONSES_URL } from "../_shared/openai.ts";
 
 // ============ 类型定义 ============
 
@@ -175,7 +172,7 @@ async function callModel(prompt: string, config: ModelConfig): Promise<string> {
       Authorization: `Bearer ${config.apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-5.2-chat", // Required by Azure AI Foundry
+      model: CHAT_MODEL,
       input: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
@@ -211,20 +208,19 @@ async function callModel(prompt: string, config: ModelConfig): Promise<string> {
   return content;
 }
 
-// 使用 Azure AI Foundry gpt-5.2-chat 模型
+// 使用 OpenAI Responses API 聊天模型
 async function callWithFallback(prompt: string): Promise<string> {
-  const foundryChatEndpoint = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_ENDPOINT");
-  const foundryChatKey = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_API_KEY");
+  const apiKey = getOpenAIKey();
 
-  if (!foundryChatEndpoint || !foundryChatKey) {
-    throw new Error("AZURE_FOUNDRY_GPT52CHAT_ENDPOINT and AZURE_FOUNDRY_GPT52CHAT_API_KEY are required");
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is required");
   }
 
   const config: ModelConfig = {
-    name: "gpt-5.2-chat",
+    name: CHAT_MODEL,
     provider: "azure_responses",
-    endpoint: foundryChatEndpoint,
-    apiKey: foundryChatKey,
+    endpoint: OPENAI_RESPONSES_URL,
+    apiKey,
     useReasoningEffort: false,
   };
 
@@ -639,11 +635,7 @@ Otherwise return:
 
 // ============ 主服务 ============
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serveWithAuth(async ({ req }) => {
   try {
     const body = (await req.json()) as CheckRequest;
 

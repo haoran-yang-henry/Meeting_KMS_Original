@@ -1,9 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { serveWithAuth } from "../_shared/auth.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import { getEmbeddings, getOpenAIKey, CHAT_MODEL, MINI_MODEL, OPENAI_RESPONSES_URL } from "../_shared/openai.ts";
 
 // FR4.3 - Conversation message structure
 interface ConversationMessage {
@@ -115,11 +113,11 @@ async function routeToTool(
 ): Promise<AgentToolCall> {
   console.log("Routing query to appropriate tool...");
 
-  const chatEndpoint = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_ENDPOINT");
-  const chatApiKey = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_API_KEY");
-  
-  if (!chatEndpoint || !chatApiKey) {
-    console.log("Azure Foundry GPT-5.2-Chat credentials not configured, using fallback heuristics");
+  const chatEndpoint = OPENAI_RESPONSES_URL;
+  const chatApiKey = getOpenAIKey();
+
+  if (!chatApiKey) {
+    console.log("OPENAI_API_KEY not configured, using fallback heuristics");
     return fallbackToolRouting(query, hasSummaryContext, hasTranscriptId);
   }
 
@@ -166,7 +164,7 @@ Always use the route_to_tool function to provide your analysis.`;
         "Authorization": `Bearer ${chatApiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-5.2-chat",
+        model: CHAT_MODEL,
         input: inputMessages,
         tools: [agentToolDefinition],
         tool_choice: { type: "function", name: "route_to_tool" },
@@ -313,160 +311,100 @@ interface RetrievedSegment {
 /**
  * FR4.2 - Step 1: Convert query to embedding vector
  */
-async function getQueryEmbedding(query: string, endpoint: string, apiKey: string): Promise<number[]> {
+async function getQueryEmbedding(query: string): Promise<number[]> {
   console.log("Generating query embedding...");
-
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": apiKey,
-    },
-    body: JSON.stringify({ input: [query] }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Embedding error:", errorText);
-    throw new Error(`Embedding error: ${response.status}`);
-  }
-
-  const result = await response.json();
-  return result.data[0].embedding;
+  const [embedding] = await getEmbeddings([query]);
+  return embedding;
 }
 
 /**
- * FR4.2 - Step 2: Perform Azure AI Search vector search
+ * FR4.2 - Step 2: Hybrid search (vector + keyword, RRF) via Postgres RPC.
+ * SECURITY INVOKER + RLS scope results to the calling user automatically.
  */
 async function vectorSearch(
+  supabase: SupabaseClient,
+  query: string,
   queryVector: number[],
   transcriptId: string | null,
   filters: ChatRequest["filters"],
-  searchEndpoint: string,
-  searchApiKey: string,
-  indexName: string,
   topN: number = 5,
 ): Promise<RetrievedSegment[]> {
   console.log(
-    `Performing vector search${transcriptId ? ` for transcript: ${transcriptId}` : " across all transcripts"}`,
+    `Performing hybrid search${transcriptId ? ` for transcript: ${transcriptId}` : " across all transcripts"}`,
   );
 
-  // Build filter string
-  const filterParts: string[] = [`docType eq 'segment'`];
-
-  // Only filter by transcriptId if provided (single transcript mode)
-  if (transcriptId) {
-    filterParts.push(`transcriptId eq '${transcriptId}'`);
-  }
-
-  if (filters?.project) {
-    filterParts.push(`project eq '${filters.project}'`);
-  }
-  if (filters?.group) {
-    filterParts.push(`group eq '${filters.group}'`);
-  }
-
-  const filterString = filterParts.join(" and ");
-
-  const searchUrl = `${searchEndpoint}/indexes/${indexName}/docs/search?api-version=2023-11-01`;
-
-  const searchBody = {
-    count: true,
-    select: "segmentId,transcriptId,meetingTitle,text,startTime,endTime,project,group,topics",
-    filter: filterString,
-    vectorQueries: [
-      {
-        kind: "vector",
-        vector: queryVector,
-        fields: "embedding",
-        k: topN,
-      },
-    ],
-    top: topN,
-  };
-
-  const response = await fetch(searchUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": searchApiKey,
-    },
-    body: JSON.stringify(searchBody),
+  const { data, error } = await supabase.rpc("hybrid_search", {
+    query_text: query,
+    query_embedding: queryVector,
+    match_count: topN,
+    filter_transcript_id: transcriptId,
+    filter_project: filters?.project || null,
+    filter_group: filters?.group || null,
+    date_from: filters?.dateFrom || null,
+    date_to: filters?.dateTo || null,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Vector search error:", errorText);
-    throw new Error(`Search error: ${response.status}`);
+  if (error) {
+    console.error("Hybrid search error:", error);
+    throw new Error("Search failed");
   }
 
-  const result = await response.json();
-  console.log(`Found ${result.value?.length || 0} matching segments`);
+  console.log(`Found ${data?.length || 0} matching segments`);
 
-  return (result.value || []).map((doc: any) => ({
-    segmentId: doc.segmentId,
-    transcriptId: doc.transcriptId,
-    meetingTitle: doc.meetingTitle,
-    text: doc.text,
-    startTime: doc.startTime,
-    endTime: doc.endTime,
-    project: doc.project,
-    group: doc.group,
-    topics: doc.topics || [],
-    score: doc["@search.score"] || 0,
+  // deno-lint-ignore no-explicit-any
+  return (data ?? []).map((row: any) => ({
+    segmentId: row.segment_id,
+    transcriptId: row.transcript_id,
+    meetingTitle: row.title,
+    text: row.text,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    project: row.project,
+    group: row.group_name,
+    topics: [],
+    score: row.score || 0,
   }));
 }
 
 /**
- * Fetch metadata documents for transcriptIds to get project/group info
+ * Fetch transcript metadata rows to get project/group info
  */
 async function fetchMetadataForTranscripts(
+  supabase: SupabaseClient,
   transcriptIds: string[],
-  searchEndpoint: string,
-  searchApiKey: string,
-  indexName: string,
 ): Promise<Map<string, { project?: string; group?: string; meetingTitle?: string; status?: string; topics?: string[]; tags?: string[]; summaryText?: string; summaryTags?: string[]; projectSummary?: string }>> {
-  if (transcriptIds.length === 0) return new Map();
+  const metaMap = new Map<string, { project?: string; group?: string; meetingTitle?: string; status?: string; topics?: string[]; tags?: string[]; summaryText?: string; summaryTags?: string[]; projectSummary?: string }>();
+  if (transcriptIds.length === 0) return metaMap;
 
   const uniqueIds = [...new Set(transcriptIds)];
-  const filterParts = uniqueIds.map((id) => `transcriptId eq '${id}'`).join(" or ");
-  const filterString = `docType eq 'metadata' and (${filterParts})`;
 
-  const searchUrl = `${searchEndpoint}/indexes/${indexName}/docs/search?api-version=2023-11-01`;
+  const { data, error } = await supabase
+    .from("transcripts")
+    .select("id, project, group_name, title, status, topics, tags, summary_text")
+    .in("id", uniqueIds);
 
-  const response = await fetch(searchUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": searchApiKey,
-    },
-    body: JSON.stringify({
-      search: "*",
-      filter: filterString,
-      select: "transcriptId,project,group,meetingTitle,status,topics,tags,summaryText,summaryTags,projectSummary",
-      top: uniqueIds.length,
-    }),
-  });
-
-  if (!response.ok) {
-    console.error("Metadata fetch error:", await response.text());
-    return new Map();
+  if (error) {
+    console.error("Metadata fetch error:", error);
+    return metaMap;
   }
 
-  const result = await response.json();
-  const metaMap = new Map<string, { project?: string; group?: string; meetingTitle?: string; status?: string; topics?: string[]; tags?: string[]; summaryText?: string; summaryTags?: string[]; projectSummary?: string }>();
+  const { data: memories } = await supabase
+    .from("project_memory")
+    .select("name, summary_text")
+    .eq("scope", "project");
+  const memoryMap = new Map((memories ?? []).map((m) => [m.name, m.summary_text]));
 
-  for (const doc of result.value || []) {
-    metaMap.set(doc.transcriptId, {
-      project: doc.project,
-      group: doc.group,
-      meetingTitle: doc.meetingTitle,
-      status: doc.status,
-      topics: doc.topics || [],
-      tags: doc.tags || [],
-      summaryText: doc.summaryText,
-      summaryTags: doc.summaryTags || [],
-      projectSummary: doc.projectSummary,
+  for (const row of data ?? []) {
+    metaMap.set(row.id, {
+      project: row.project,
+      group: row.group_name,
+      meetingTitle: row.title,
+      status: row.status,
+      topics: row.topics || [],
+      tags: row.tags || [],
+      summaryText: row.summary_text,
+      summaryTags: row.tags || [],
+      projectSummary: row.project ? memoryMap.get(row.project) : undefined,
     });
   }
 
@@ -640,7 +578,7 @@ ${isCrossTranscript ? "- Mention which meeting the information comes from when r
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-5.2-chat",
+      model: CHAT_MODEL,
       input: inputMessages,
       max_output_tokens: 4000,
     }),
@@ -700,7 +638,7 @@ async function callGeneralChat(
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-5.2-chat",
+      model: CHAT_MODEL,
       input: inputMessages,
       max_output_tokens: 4000,
     }),
@@ -761,7 +699,7 @@ INSTRUCTIONS:
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-5.2-chat",
+      model: CHAT_MODEL,
       input: inputMessages,
       max_output_tokens: 2000,
     }),
@@ -801,41 +739,42 @@ function isFullRecapQuery(query: string): boolean {
  * Fetch ALL segments for a specific transcript (for full recap queries)
  */
 async function fetchAllTranscriptSegments(
+  supabase: SupabaseClient,
   transcriptId: string,
-  searchEndpoint: string,
-  searchApiKey: string,
-  indexName: string,
 ): Promise<RetrievedSegment[]> {
   console.log(`Fetching ALL segments for transcript: ${transcriptId}`);
-  
-  const filterString = `docType eq 'segment' and transcriptId eq '${transcriptId}'`;
-  const searchUrl = `${searchEndpoint}/indexes/${indexName}/docs/search?api-version=2023-11-01`;
 
-  const searchBody = {
-    search: "*",
-    filter: filterString,
-    select: "segmentId,transcriptId,meetingTitle,text,startTime,endTime,project,group,topics",
-    orderby: "segmentId asc", // Order by segment ID to maintain chronological order
-    top: 1000, // Get up to 1000 segments
-  };
+  const [segmentsResult, transcriptResult] = await Promise.all([
+    supabase
+      .from("segments")
+      .select("segment_id, transcript_id, text, start_time, end_time")
+      .eq("transcript_id", transcriptId)
+      .order("start_time") // maintain chronological order
+      .limit(1000),
+    supabase
+      .from("transcripts")
+      .select("title, project, group_name, topics")
+      .eq("id", transcriptId)
+      .maybeSingle(),
+  ]);
 
-  const response = await fetch(searchUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": searchApiKey,
-    },
-    body: JSON.stringify(searchBody),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Fetch all segments error:", errorText);
-    throw new Error(`Search error: ${response.status}`);
+  if (segmentsResult.error) {
+    console.error("Fetch all segments error:", segmentsResult.error);
+    throw new Error("Failed to fetch segments");
   }
 
-  const result = await response.json();
-  const allSegments = result.value || [];
+  const meta = transcriptResult.data;
+  const allSegments = (segmentsResult.data ?? []).map((row) => ({
+    segmentId: row.segment_id,
+    transcriptId: row.transcript_id,
+    meetingTitle: meta?.title,
+    text: row.text,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    project: meta?.project,
+    group: meta?.group_name,
+    topics: meta?.topics || [],
+  }));
   console.log(`Found ${allSegments.length} total segments for transcript`);
 
   // Sample segments to stay within token limits (~50k chars max for context)
@@ -870,16 +809,8 @@ async function fetchAllTranscriptSegments(
 
   console.log(`Using ${limitedSegments.length} segments (${totalChars} chars) for recap`);
 
-  return limitedSegments.map((doc: any) => ({
-    segmentId: doc.segmentId,
-    transcriptId: doc.transcriptId,
-    meetingTitle: doc.meetingTitle,
-    text: doc.text,
-    startTime: doc.startTime,
-    endTime: doc.endTime,
-    project: doc.project,
-    group: doc.group,
-    topics: doc.topics || [],
+  return limitedSegments.map((doc) => ({
+    ...doc,
     score: 1, // All segments are equally relevant for full recap
   }));
 }
@@ -957,61 +888,50 @@ function isMetadataQuery(query: string): boolean {
  * Fetch all meeting metadata for inventory questions
  */
 async function fetchAllMeetingMetadata(
-  searchEndpoint: string,
-  searchApiKey: string,
-  indexName: string,
+  supabase: SupabaseClient,
   filters?: ChatRequest["filters"],
 ): Promise<RetrievedSegment[]> {
   console.log("Fetching all meeting metadata for inventory query...");
-  
-  const filterParts: string[] = [`docType eq 'metadata'`];
-  if (filters?.project) {
-    filterParts.push(`project eq '${filters.project}'`);
-  }
-  if (filters?.group) {
-    filterParts.push(`group eq '${filters.group}'`);
-  }
-  const filterString = filterParts.join(" and ");
 
-  const searchUrl = `${searchEndpoint}/indexes/${indexName}/docs/search?api-version=2023-11-01`;
+  let dbQuery = supabase
+    .from("transcripts")
+    .select("id, title, meeting_date, project, group_name, topics, tags, summary_text, status")
+    .order("meeting_date", { ascending: false })
+    .limit(100);
+  if (filters?.project) dbQuery = dbQuery.eq("project", filters.project);
+  if (filters?.group) dbQuery = dbQuery.eq("group_name", filters.group);
 
-  const response = await fetch(searchUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": searchApiKey,
-    },
-    body: JSON.stringify({
-      search: "*",
-      filter: filterString,
-      select: "transcriptId,meetingTitle,meetingDate,project,group,topics,tags,summaryText,status,projectSummary,organizationSummary",
-      top: 100,
-      orderby: "meetingDate desc",
-      count: true,
-    }),
-  });
-
-  if (!response.ok) {
-    console.error("Metadata fetch error:", await response.text());
+  const { data, error } = await dbQuery;
+  if (error) {
+    console.error("Metadata fetch error:", error);
     return [];
   }
 
-  const result = await response.json();
-  console.log(`Found ${result["@odata.count"] || result.value?.length || 0} total meetings`);
+  const { data: memories } = await supabase
+    .from("project_memory")
+    .select("scope, name, summary_text");
+  let organizationSummary: string | undefined;
+  const memoryMap = new Map<string, string>();
+  for (const m of memories ?? []) {
+    if (m.scope === "organization") organizationSummary = m.summary_text;
+    else memoryMap.set(m.name, m.summary_text);
+  }
 
-  return (result.value || []).map((doc: any) => ({
-    segmentId: doc.transcriptId,
-    transcriptId: doc.transcriptId,
-    meetingTitle: doc.meetingTitle,
-    text: doc.summaryText || `Meeting: ${doc.meetingTitle}`,
-    project: doc.project,
-    group: doc.group,
-    topics: doc.topics || [],
-    tags: doc.tags || [],
-    status: doc.status,
-    summaryText: doc.summaryText,
-    projectSummary: doc.projectSummary,
-    organizationSummary: doc.organizationSummary,
+  console.log(`Found ${data?.length || 0} total meetings`);
+
+  return (data ?? []).map((row) => ({
+    segmentId: row.id,
+    transcriptId: row.id,
+    meetingTitle: row.title,
+    text: row.summary_text || `Meeting: ${row.title}`,
+    project: row.project,
+    group: row.group_name,
+    topics: row.topics || [],
+    tags: row.tags || [],
+    status: row.status,
+    summaryText: row.summary_text,
+    projectSummary: row.project ? memoryMap.get(row.project) : undefined,
+    organizationSummary,
     score: 1,
   }));
 }
@@ -1113,7 +1033,7 @@ INSTRUCTIONS:
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-5.2-chat",
+      model: CHAT_MODEL,
       input: inputMessages,
       max_output_tokens: 4000,
     }),
@@ -1151,12 +1071,12 @@ async function analyzeAdjustmentIntent(
 ): Promise<SummaryAdjustmentIntent> {
   console.log("Analyzing adjustment intent with reasoning model...");
   
-  const reasoningEndpoint = Deno.env.get("AZURE_AI_FOUNDRY_GPT5NANO_ENDPOINT");
-  const reasoningApiKey = Deno.env.get("AZURE_AI_FOUNDRY_GPT5NANO_API_KEY");
-  
+  const reasoningEndpoint = OPENAI_RESPONSES_URL;
+  const reasoningApiKey = getOpenAIKey();
+
   // Fallback to heuristics if reasoning model not available
-  if (!reasoningEndpoint || !reasoningApiKey) {
-    console.log("Reasoning model not configured, using heuristics");
+  if (!reasoningApiKey) {
+    console.log("OPENAI_API_KEY not configured, using heuristics");
     return heuristicIntentAnalysis(userRequest);
   }
 
@@ -1245,7 +1165,7 @@ Return a JSON object with your analysis.`;
         "Authorization": `Bearer ${reasoningApiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-5-nano",
+        model: MINI_MODEL,
         input: [
           { role: "system", content: "You are an intent analysis expert. Analyze the user's request carefully and determine their true intent." },
           { role: "user", content: analysisPrompt }
@@ -1452,7 +1372,7 @@ Return ONLY the adjusted summary text, no labels or prefixes.`;
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-5.2-chat",
+      model: CHAT_MODEL,
       input: inputMessages,
       max_output_tokens: 4000,
     }),
@@ -1478,11 +1398,7 @@ Return ONLY the adjusted summary text, no labels or prefixes.`;
   return content;
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serveWithAuth(async ({ req, supabase }) => {
   try {
     const { query, transcriptId, useRAG, conversationHistory, filters, summaryContext, originalSummary, transcriptContent }: ChatRequest =
       await req.json();
@@ -1492,12 +1408,12 @@ serve(async (req) => {
       throw new Error("Missing required field: query");
     }
 
-    // Get credentials (GPT-5.2-Chat with Responses API)
-    const openaiEndpoint = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_ENDPOINT");
-    const openaiApiKey = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_API_KEY");
+    // Get credentials (OpenAI Responses API)
+    const openaiEndpoint = OPENAI_RESPONSES_URL;
+    const openaiApiKey = getOpenAIKey();
 
-    if (!openaiEndpoint || !openaiApiKey) {
-      throw new Error("Azure GPT-5.2-Chat credentials not configured");
+    if (!openaiApiKey) {
+      throw new Error("OPENAI_API_KEY not configured");
     }
 
     // Use 4-tool agent routing
@@ -1601,26 +1517,12 @@ serve(async (req) => {
 
     // REMOVED: Legacy adjustSummary flag override - now using pure AI routing
 
-    // RAG-based tools require search credentials
-    const searchEndpoint = Deno.env.get("AZURE_SEARCH_ENDPOINT");
-    const searchApiKey = Deno.env.get("AZURE_SEARCH_API_KEY");
-    const indexName = Deno.env.get("AZURE_SEARCH_INDEX_NAME");
-    const foundryEndpoint = Deno.env.get("AZURE_AI_FOUNDRY_TEXTEMBEDDING3L_ENDPOINT");
-    const foundryApiKey = Deno.env.get("AZURE_AI_FOUNDRY_TEXTEMBEDDING3L_API_KEY");
-
-    if (!searchEndpoint || !searchApiKey || !indexName) {
-      throw new Error("Azure Search credentials not configured");
-    }
-    if (!foundryEndpoint || !foundryApiKey) {
-      throw new Error("Azure AI Foundry Text Embedding credentials not configured");
-    }
-
     const isCrossTranscript = useRAG && !transcriptId;
 
     // Handle metadata queries (how many meetings, list projects, etc.)
     if (isCrossTranscript && isMetadataQuery(query)) {
       console.log("Metadata query mode - fetching all meeting metadata");
-      const allMeetings = await fetchAllMeetingMetadata(searchEndpoint, searchApiKey, indexName, filters);
+      const allMeetings = await fetchAllMeetingMetadata(supabase, filters);
       
       const answer = await callMetadataReasoningModel(
         query,
@@ -1658,32 +1560,21 @@ serve(async (req) => {
     // For extraction, get ALL segments; for search, use vector search
     if (toolCall.tool === "extract_from_transcript" && transcriptId) {
       console.log("extract_from_transcript tool - fetching ALL segments");
-      retrievedSegments = await fetchAllTranscriptSegments(
-        transcriptId,
-        searchEndpoint,
-        searchApiKey,
-        indexName,
-      );
+      retrievedSegments = await fetchAllTranscriptSegments(supabase, transcriptId);
     } else if (transcriptId && !isCrossTranscript && isFullRecapQuery(query)) {
       console.log("Full recap mode - fetching ALL segments");
-      retrievedSegments = await fetchAllTranscriptSegments(
-        transcriptId,
-        searchEndpoint,
-        searchApiKey,
-        indexName,
-      );
+      retrievedSegments = await fetchAllTranscriptSegments(supabase, transcriptId);
     } else {
-      // search_transcript: Vector search for relevant segments
-      console.log(`search_transcript tool - performing vector search`);
-      const queryVector = await getQueryEmbedding(query, foundryEndpoint, foundryApiKey);
+      // search_transcript: Hybrid search for relevant segments
+      console.log(`search_transcript tool - performing hybrid search`);
+      const queryVector = await getQueryEmbedding(query);
 
       retrievedSegments = await vectorSearch(
+        supabase,
+        query,
         queryVector,
         transcriptId || null,
         filters,
-        searchEndpoint,
-        searchApiKey,
-        indexName,
         isCrossTranscript ? 10 : 5,
       );
     }
@@ -1710,7 +1601,7 @@ serve(async (req) => {
     if (segmentsNeedingMeta.length > 0) {
       console.log(`Fetching metadata for ${segmentsNeedingMeta.length} segments without project info...`);
       const transcriptIdsForMeta = segmentsNeedingMeta.map((s) => s.transcriptId!);
-      const metaMap = await fetchMetadataForTranscripts(transcriptIdsForMeta, searchEndpoint, searchApiKey, indexName);
+      const metaMap = await fetchMetadataForTranscripts(supabase, transcriptIdsForMeta);
 
       for (const seg of retrievedSegments) {
         if (seg.transcriptId && metaMap.has(seg.transcriptId)) {

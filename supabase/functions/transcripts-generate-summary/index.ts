@@ -1,9 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { serveWithAuth } from "../_shared/auth.ts";
+import { json } from "../_shared/cors.ts";
+import { getOpenAIKey, CHAT_MODEL, OPENAI_RESPONSES_URL } from "../_shared/openai.ts";
 
 // FR5.1 - Summary generation request
 interface GenerateSummaryRequest {
@@ -21,40 +19,27 @@ interface GeneratedSummary {
 }
 
 /**
- * FR5.1 - Fetch transcript segments from Azure AI Search
+ * FR5.1 - Fetch transcript segments from Postgres (RLS-scoped to the caller)
  */
 async function fetchTranscriptSegments(
+  supabase: SupabaseClient,
   transcriptId: string,
-  searchEndpoint: string,
-  searchApiKey: string,
-  indexName: string,
 ): Promise<string[]> {
   console.log(`Fetching segments for transcript: ${transcriptId}`);
 
-  const searchUrl = `${searchEndpoint}/indexes/${indexName}/docs/search?api-version=2023-11-01`;
+  const { data, error } = await supabase
+    .from("segments")
+    .select("text, start_time")
+    .eq("transcript_id", transcriptId)
+    .order("start_time")
+    .limit(100);
 
-  const response = await fetch(searchUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": searchApiKey,
-    },
-    body: JSON.stringify({
-      filter: `transcriptId eq '${transcriptId}' and docType eq 'segment'`,
-      select: "text,startTime",
-      orderby: "startTime",
-      top: 100,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Search error:", errorText);
-    throw new Error(`Failed to fetch segments: ${response.status}`);
+  if (error) {
+    console.error("Fetch segments error:", error);
+    throw new Error("Failed to fetch segments");
   }
 
-  const result = await response.json();
-  return (result.value || []).map((doc: any) => doc.text);
+  return (data ?? []).map((row) => row.text);
 }
 
 /**
@@ -160,7 +145,7 @@ Return valid JSON only, no markdown or extra text.`;
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-5.2-chat",
+      model: CHAT_MODEL,
       input: [
         {
           role: "system",
@@ -432,88 +417,65 @@ function generateFallbackSummary(segments: string[]): GeneratedSummary {
   };
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+serveWithAuth(async ({ req, supabase }) => {
+  const {
+    transcriptId,
+    transcriptContent,
+    includeDecisions = true,
+    includeActionItems = true,
+    includeTopicTags = true,
+  }: GenerateSummaryRequest = await req.json();
+
+  if (!transcriptId) {
+    return json({ error: "Missing required field: transcriptId" }, 400);
   }
 
-  try {
-    const {
-      transcriptId,
-      transcriptContent,
-      includeDecisions = true,
-      includeActionItems = true,
-      includeTopicTags = true,
-    }: GenerateSummaryRequest = await req.json();
+  const gpt52Endpoint = OPENAI_RESPONSES_URL;
+  const gpt52ApiKey = getOpenAIKey();
 
-    if (!transcriptId) {
-      throw new Error("Missing required field: transcriptId");
-    }
-
-    // Get credentials
-    const searchEndpoint = Deno.env.get("AZURE_SEARCH_ENDPOINT");
-    const searchApiKey = Deno.env.get("AZURE_SEARCH_API_KEY");
-    const indexName = Deno.env.get("AZURE_SEARCH_INDEX_NAME");
-    const gpt52Endpoint = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_ENDPOINT");
-    const gpt52ApiKey = Deno.env.get("AZURE_FOUNDRY_GPT52CHAT_API_KEY");
-
-    if (!gpt52Endpoint || !gpt52ApiKey) {
-      throw new Error("Azure AI Foundry GPT-5.2-Chat credentials not configured");
-    }
-
-    console.log(`FR5.1 - Generating summary for transcript: ${transcriptId}`);
-
-    let segments: string[];
-
-    if (transcriptContent) {
-      // Use provided content
-      segments = transcriptContent.split("\n").filter((s) => s.trim());
-      console.log(`Using provided content. Sample: ${transcriptContent.substring(0, 300)}`);
-      // Check for specific terms to debug correction issues
-      if (transcriptContent.toLowerCase().includes("agentic")) {
-        console.log('Content contains "agentic" - correction applied');
-      }
-      if (transcriptContent.toLowerCase().includes("adjantic")) {
-        console.log('WARNING: Content still contains "adjantic" - correction may not have been applied');
-      }
-    } else {
-      // Fetch from Azure AI Search
-      if (!searchEndpoint || !searchApiKey || !indexName) {
-        throw new Error("Azure Search credentials not configured");
-      }
-      segments = await fetchTranscriptSegments(transcriptId, searchEndpoint, searchApiKey, indexName);
-    }
-
-    if (segments.length === 0) {
-      throw new Error("No transcript content found");
-    }
-
-    console.log(`Processing ${segments.length} segments`);
-
-    // Generate summary
-    const summary = await generateSummaryWithAI(
-      segments,
-      { includeDecisions, includeActionItems, includeTopicTags },
-      gpt52Endpoint,
-      gpt52ApiKey,
-    );
-
-    console.log("FR5.1 - Summary generated successfully");
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        transcriptId,
-        ...summary,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  } catch (error) {
-    console.error("Error in transcripts-generate-summary:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  if (!gpt52ApiKey) {
+    console.error("OPENAI_API_KEY not configured");
+    return json({ error: "AI service not configured" }, 500);
   }
+
+  console.log(`FR5.1 - Generating summary for transcript: ${transcriptId}`);
+
+  let segments: string[];
+
+  if (transcriptContent) {
+    // Use provided content
+    segments = transcriptContent.split("\n").filter((s: string) => s.trim());
+    console.log(`Using provided content. Sample: ${transcriptContent.substring(0, 300)}`);
+    // Check for specific terms to debug correction issues
+    if (transcriptContent.toLowerCase().includes("agentic")) {
+      console.log('Content contains "agentic" - correction applied');
+    }
+    if (transcriptContent.toLowerCase().includes("adjantic")) {
+      console.log('WARNING: Content still contains "adjantic" - correction may not have been applied');
+    }
+  } else {
+    segments = await fetchTranscriptSegments(supabase, transcriptId);
+  }
+
+  if (segments.length === 0) {
+    return json({ error: "No transcript content found" }, 404);
+  }
+
+  console.log(`Processing ${segments.length} segments`);
+
+  // Generate summary
+  const summary = await generateSummaryWithAI(
+    segments,
+    { includeDecisions, includeActionItems, includeTopicTags },
+    gpt52Endpoint,
+    gpt52ApiKey,
+  );
+
+  console.log("FR5.1 - Summary generated successfully");
+
+  return json({
+    success: true,
+    transcriptId,
+    ...summary,
+  });
 });

@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Environment variables (real values live in Supabase / hosting provider)
+.env
+.env.*
+!.env.example
+
+# Deno lockfile/artifacts for edge functions
+supabase/functions/deno.lock
+
+# Local working docs (drawio sources, rendered HTML, videos) — tracked docs live in docu/
+docs/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +33,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Supabase local temp files
+supabase/.temp/

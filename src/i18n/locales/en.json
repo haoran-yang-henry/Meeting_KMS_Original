@@ -1,4 +1,16 @@
 {
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "signInSubtitle": "Sign in to your workspace",
+    "signUpSubtitle": "Create your account",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signUpSuccess": "Account created. Check your email to confirm your address."
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",

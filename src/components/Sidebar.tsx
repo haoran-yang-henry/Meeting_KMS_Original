@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { NavLink } from "@/components/NavLink";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, MessageSquare, FolderOpen, Edit2, Check, X, Inbox, Trash2 } from "lucide-react";
+import { Plus, MessageSquare, FolderOpen, Edit2, Check, X, Inbox, Trash2, LogOut } from "lucide-react";
 import { useSidebarCategories } from "@/hooks/useSidebarCategories";
+import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useTranslation } from "react-i18next";
@@ -23,6 +24,7 @@ import {
 
 export const Sidebar = () => {
   const { categories, isLoading, addProject, renameProject, deleteProject } = useSidebarCategories();
+  const { user, signOut } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -315,6 +317,22 @@ export const Sidebar = () => {
             </div>
           </div>
         </ScrollArea>
+
+        {/* User / logout footer */}
+        <div className="p-4 border-t flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground truncate" title={user?.email ?? ""}>
+            {user?.email}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0"
+            onClick={() => signOut()}
+            title={t('auth.signOut')}
+          >
+            <LogOut className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+          </Button>
+        </div>
       </aside>
 
       {/* Delete Confirmation Dialog */}

@@ -1,4 +1,16 @@
 {
+  "auth": {
+    "signIn": "Anmelden",
+    "signUp": "Registrieren",
+    "signOut": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "signInSubtitle": "Melden Sie sich bei Ihrem Arbeitsbereich an",
+    "signUpSubtitle": "Erstellen Sie Ihr Konto",
+    "noAccount": "Noch kein Konto?",
+    "hasAccount": "Bereits ein Konto?",
+    "signUpSuccess": "Konto erstellt. Bitte bestätigen Sie Ihre E-Mail-Adresse."
+  },
   "common": {
     "save": "Speichern",
     "cancel": "Abbrechen",
