@@ -1,0 +1,162 @@
+<mxfile host="app.diagrams.net" modified="2026-04-17T00:00:00.000Z" agent="Claude" version="24.0.0" type="device">
+  <diagram id="transcript-check-flow" name="Transcript Check Flowchart">
+    <mxGraphModel dx="1100" dy="860" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ══════ START ══════ -->
+        <mxCell id="start" value="Start" style="ellipse;whiteSpace=wrap;html=1;fillColor=#009688;fontColor=#FFFFFF;strokeColor=#00796B;strokeWidth=2;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="30" width="120" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow: Start → Input -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333;strokeWidth=1.5;endArrow=block;endFill=1;" edge="1" parent="1" source="start" target="input">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════ INPUT (parallelogram) ══════ -->
+        <mxCell id="input" value="Receive CheckRequest&lt;br&gt;(segments, glossary, projectContext,&lt;br&gt;projectMemory, omitRules)" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#E0F2F1;fontColor=#004D40;strokeColor=#009688;strokeWidth=1.5;fontSize=11;size=20;" vertex="1" parent="1">
+          <mxGeometry x="350" y="110" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow: Input → D1 -->
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333;strokeWidth=1.5;endArrow=block;endFill=1;" edge="1" parent="1" source="input" target="d1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════ DECISION 1: Glossary ══════ -->
+        <mxCell id="d1" value="Glossary&lt;br&gt;exists?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF3E0;fontColor=#E65100;strokeColor=#FF9800;strokeWidth=1.5;fontSize=11;fontStyle=1;size=auto;" vertex="1" parent="1">
+          <mxGeometry x="430" y="205" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Yes → append glossary -->
+        <mxCell id="e3" value="Y" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontStyle=1;fontColor=#2E7D32;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d1" target="p1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="620" y="240" /><mxPoint x="620" y="195" /><mxPoint x="750" y="195" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1" value="Append&lt;br&gt;GLOSSARY block" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;fontColor=#1B5E20;strokeColor=#4CAF50;strokeWidth=1.5;fontSize=10;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="690" y="210" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- No → skip, go to D2 -->
+        <mxCell id="e4" value="N" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C62828;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontStyle=1;fontColor=#C62828;" edge="1" parent="1" source="d1" target="d2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════ DECISION 2: Project Context ══════ -->
+        <mxCell id="d2" value="Project&lt;br&gt;Context&lt;br&gt;exists?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF3E0;fontColor=#E65100;strokeColor=#FF9800;strokeWidth=1.5;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="425" y="310" width="110" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e5" value="Y" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontStyle=1;fontColor=#2E7D32;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d2" target="p2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="620" y="350" /><mxPoint x="620" y="305" /><mxPoint x="750" y="305" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2" value="Append&lt;br&gt;PROJECT CONTEXT block" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;fontColor=#1B5E20;strokeColor=#4CAF50;strokeWidth=1.5;fontSize=10;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="690" y="320" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e6" value="N" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C62828;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontStyle=1;fontColor=#C62828;" edge="1" parent="1" source="d2" target="d3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════ DECISION 3: Project Memory ══════ -->
+        <mxCell id="d3" value="Project&lt;br&gt;Memory&lt;br&gt;exists?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF3E0;fontColor=#E65100;strokeColor=#FF9800;strokeWidth=1.5;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="425" y="425" width="110" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e7" value="Y" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontStyle=1;fontColor=#2E7D32;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d3" target="p3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="620" y="465" /><mxPoint x="620" y="420" /><mxPoint x="750" y="420" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p3" value="Append&lt;br&gt;PROJECT MEMORY block" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;fontColor=#1B5E20;strokeColor=#4CAF50;strokeWidth=1.5;fontSize=10;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="690" y="435" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e8" value="N" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C62828;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontStyle=1;fontColor=#C62828;" edge="1" parent="1" source="d3" target="d4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════ DECISION 4: Omit Rules ══════ -->
+        <mxCell id="d4" value="Omit&lt;br&gt;Rules&lt;br&gt;exist?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF3E0;fontColor=#E65100;strokeColor=#FF9800;strokeWidth=1.5;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="425" y="540" width="110" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e9" value="Y" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontStyle=1;fontColor=#2E7D32;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d4" target="p4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="620" y="580" /><mxPoint x="620" y="535" /><mxPoint x="750" y="535" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p4" value="Append&lt;br&gt;OMIT RULES block" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;fontColor=#1B5E20;strokeColor=#4CAF50;strokeWidth=1.5;fontSize=10;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="690" y="550" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e10" value="N" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C62828;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontStyle=1;fontColor=#C62828;" edge="1" parent="1" source="d4" target="build">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Merge arrows from all appends back to buildPrompt -->
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#4CAF50;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p1" target="build">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="750" y="270" /><mxPoint x="870" y="270" /><mxPoint x="870" y="670" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#4CAF50;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2" target="build">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="750" y="380" /><mxPoint x="860" y="380" /><mxPoint x="860" y="660" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#4CAF50;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3" target="build">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="750" y="495" /><mxPoint x="850" y="495" /><mxPoint x="850" y="680" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#4CAF50;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.85;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="p4" target="build">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="750" y="610" /><mxPoint x="840" y="610" /><mxPoint x="840" y="695" /><mxPoint x="580" y="695" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ══════ PROCESS: buildPrompt ══════ -->
+        <mxCell id="build" value="buildPrompt()&lt;br&gt;&lt;i&gt;Assemble: Segments + Context Blocks&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#BBDEFB;fontColor=#0D47A1;strokeColor=#1565C0;strokeWidth=2;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="650" width="220" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow: build → GPT -->
+        <mxCell id="e15" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333;strokeWidth=1.5;endArrow=block;endFill=1;" edge="1" parent="1" source="build" target="gpt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════ EXTERNAL: GPT (cylinder/predefined process) ══════ -->
+        <mxCell id="gpt" value="GPT-5.2-Chat&lt;br&gt;&lt;i&gt;Azure AI Foundry&lt;/i&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#B2DFDB;fontColor=#004D40;strokeColor=#00796B;strokeWidth=2;fontSize=12;fontStyle=1;size=8;" vertex="1" parent="1">
+          <mxGeometry x="400" y="735" width="160" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow: GPT → Output -->
+        <mxCell id="e16" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333;strokeWidth=1.5;endArrow=block;endFill=1;" edge="1" parent="1" source="gpt" target="output">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════ OUTPUT (parallelogram) ══════ -->
+        <mxCell id="output" value="Structured Suggestions&lt;br&gt;&lt;i&gt;priority: context → general&lt;br&gt;sorted by confidence&lt;/i&gt;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#E1BEE7;fontColor=#4A148C;strokeColor=#6A1B9A;strokeWidth=1.5;fontSize=11;fontStyle=1;size=20;" vertex="1" parent="1">
+          <mxGeometry x="350" y="825" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow: Output → End -->
+        <mxCell id="e17" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333;strokeWidth=1.5;endArrow=block;endFill=1;" edge="1" parent="1" source="output" target="end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════ END ══════ -->
+        <mxCell id="end" value="End" style="ellipse;whiteSpace=wrap;html=1;fillColor=#009688;fontColor=#FFFFFF;strokeColor=#00796B;strokeWidth=2;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="920" width="120" height="45" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
