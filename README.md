@@ -21,6 +21,12 @@ Upload → Parse → Correct → Summarize → Search
 
 ![System Architecture & Data Flow](docu/architecture.svg)
 
+### Desktop Recorder
+
+Download installers from the [Meeting KMS Recorder releases](https://github.com/haoran-yang-henry/meeting-kms-recorder/releases/latest). The desktop app is managed as a separate repository named `meeting-kms-recorder` and captures microphone plus computer audio, uploads recordings through the same Supabase auth/backend, and syncs generated transcripts back into Meeting KMS. Paid transcription access is enforced by backend entitlement checks before transcription jobs run.
+
+See the [Desktop Recorder Design](https://github.com/haoran-yang-henry/meeting-kms-recorder/blob/main/docs/desktop-recorder-design.md) in the desktop repository for architecture, packaging, and deployment details.
+
 ---
 
 ## Features
