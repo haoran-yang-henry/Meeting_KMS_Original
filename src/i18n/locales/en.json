@@ -1,4 +1,18 @@
 {
+  "teams": {
+    "connect": "Connect Microsoft Teams",
+    "disconnect": "Disconnect",
+    "connected": "Microsoft Teams connected",
+    "disconnected": "Microsoft Teams disconnected",
+    "denied": "Microsoft sign-in was cancelled",
+    "error": "Failed to connect Microsoft Teams",
+    "notConfigured": "Teams integration is not configured yet",
+    "sync": "Import recent Teams transcripts",
+    "syncing": "Importing…",
+    "syncResult": "Imported {{count}} meeting transcript(s)",
+    "syncNothing": "No new transcripts found in the last 14 days",
+    "syncError": "Sync failed — try reconnecting Teams"
+  },
   "auth": {
     "signIn": "Sign in",
     "signUp": "Sign up",

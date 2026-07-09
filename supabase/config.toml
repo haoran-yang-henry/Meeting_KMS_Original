@@ -1,1 +1,6 @@
 project_id = "umentgmndgkzstfpaeep"
+
+# OAuth redirect from Microsoft arrives without a Supabase JWT;
+# the HMAC-signed `state` parameter authenticates the request instead.
+[functions.teams-callback]
+verify_jwt = false

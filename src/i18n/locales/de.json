@@ -1,4 +1,18 @@
 {
+  "teams": {
+    "connect": "Microsoft Teams verbinden",
+    "disconnect": "Trennen",
+    "connected": "Microsoft Teams verbunden",
+    "disconnected": "Microsoft Teams getrennt",
+    "denied": "Microsoft-Anmeldung wurde abgebrochen",
+    "error": "Verbindung mit Microsoft Teams fehlgeschlagen",
+    "notConfigured": "Teams-Integration ist noch nicht konfiguriert",
+    "sync": "Aktuelle Teams-Transkripte importieren",
+    "syncing": "Importiere…",
+    "syncResult": "{{count}} Meeting-Transkript(e) importiert",
+    "syncNothing": "Keine neuen Transkripte in den letzten 14 Tagen gefunden",
+    "syncError": "Import fehlgeschlagen — Teams bitte neu verbinden"
+  },
   "auth": {
     "signIn": "Anmelden",
     "signUp": "Registrieren",
