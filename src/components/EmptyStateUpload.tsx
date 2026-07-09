@@ -10,7 +10,7 @@ interface EmptyStateUploadProps {
 
 export const EmptyStateUpload = ({ onUploadTranscript }: EmptyStateUploadProps) => {
   const { t } = useTranslation();
-  const { status, isSyncing, connect, disconnect, sync } = useTeamsIntegration();
+  const { status, isStatusLoading, isSyncing, connect, disconnect, sync } = useTeamsIntegration();
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-8">
@@ -59,7 +59,7 @@ export const EmptyStateUpload = ({ onUploadTranscript }: EmptyStateUploadProps) 
         </div>
 
         {/* Microsoft Teams */}
-        {status?.available && status.connected ? (
+        {status?.connected ? (
           // Connected: show account + sync action
           <div className="w-full px-4 py-3 rounded-lg border-2 border-primary/50 bg-background space-y-2">
             <div className="flex items-center justify-between gap-3">
@@ -94,40 +94,30 @@ export const EmptyStateUpload = ({ onUploadTranscript }: EmptyStateUploadProps) 
               )}
             </Button>
           </div>
-        ) : status?.available ? (
-          // Available but not connected: start OAuth
+        ) : (
+          // Start OAuth. If the status request failed, connect still gives the
+          // backend a chance to return a concrete error/toast.
           <button
             onClick={connect}
+            disabled={isStatusLoading}
             className={cn(
-              "w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all",
-              "border-primary bg-background hover:bg-accent/50",
-              "text-left group cursor-pointer"
+              "w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all text-left group",
+              isStatusLoading
+                ? "border-muted bg-muted/20 cursor-wait opacity-70"
+                : "border-primary bg-background hover:bg-accent/50 cursor-pointer"
             )}
           >
-            <MessageSquare className="h-5 w-5 text-primary shrink-0" />
+            {isStatusLoading ? (
+              <Loader2 className="h-5 w-5 text-muted-foreground shrink-0 animate-spin" />
+            ) : (
+              <MessageSquare className="h-5 w-5 text-primary shrink-0" />
+            )}
             <span className="font-medium text-foreground">
-              {t('teams.connect', 'Connect Microsoft Teams')}
+              {isStatusLoading
+                ? t('common.loading', 'Loading...')
+                : t('teams.connect', 'Connect Microsoft Teams')}
             </span>
           </button>
-        ) : (
-          // Integration not configured on the backend: keep Coming Soon
-          <div
-            className={cn(
-              "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg border transition-all",
-              "border-muted bg-muted/30",
-              "text-left cursor-not-allowed opacity-60"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <MessageSquare className="h-5 w-5 text-muted-foreground shrink-0" />
-              <span className="font-medium text-muted-foreground">
-                {t('addPage.emptyState.microsoftTeams', 'Microsoft Teams')}
-              </span>
-            </div>
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-              {t('addPage.emptyState.comingSoon', 'Coming Soon')}
-            </span>
-          </div>
         )}
       </div>
     </div>

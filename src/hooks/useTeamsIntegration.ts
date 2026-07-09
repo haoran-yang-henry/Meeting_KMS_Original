@@ -16,13 +16,24 @@ const appBaseUrl = () => window.location.origin + import.meta.env.BASE_URL;
 export const useTeamsIntegration = () => {
   const { t } = useTranslation();
   const [status, setStatus] = useState<TeamsStatus | null>(null);
+  const [isStatusLoading, setIsStatusLoading] = useState(true);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const refreshStatus = useCallback(async () => {
+    setIsStatusLoading(true);
     const { data, error } = await supabase.functions.invoke("teams-integration", {
       body: { action: "status" },
     });
-    if (!error && data) setStatus(data as TeamsStatus);
+
+    if (error) {
+      setStatusError(error.message);
+      setStatus(null);
+    } else if (data) {
+      setStatus(data as TeamsStatus);
+      setStatusError(null);
+    }
+    setIsStatusLoading(false);
   }, []);
 
   useEffect(() => {
@@ -86,5 +97,5 @@ export const useTeamsIntegration = () => {
     }
   }, [refreshStatus, t]);
 
-  return { status, isSyncing, connect, disconnect, sync };
+  return { status, isStatusLoading, statusError, isSyncing, connect, disconnect, sync };
 };

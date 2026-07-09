@@ -97,12 +97,28 @@ Set the following secrets in your **Supabase project dashboard** (Edge Functions
 
 ```
 OPENAI_API_KEY           # required
+MS_CLIENT_ID             # optional, required for Microsoft Teams import
+MS_CLIENT_SECRET         # optional, required for Microsoft Teams import
 
 OPENAI_CHAT_MODEL        # optional, default: gpt-5.2-chat
 OPENAI_MINI_MODEL        # optional, default: gpt-5-nano
 OPENAI_EMBEDDING_MODEL   # optional, default: text-embedding-3-large
 ALLOWED_ORIGIN           # optional: lock CORS to your deployed frontend origin
 ```
+
+For Microsoft Teams import, create a Microsoft Entra app registration and add this web redirect URI:
+
+```text
+https://<your-project>.supabase.co/functions/v1/teams-callback
+```
+
+Then set the Edge Function secrets:
+
+```bash
+supabase secrets set MS_CLIENT_ID="<entra-application-client-id>" MS_CLIENT_SECRET="<entra-client-secret>"
+```
+
+The Teams transcript flow requests delegated Microsoft Graph permissions for `User.Read`, `Calendars.Read`, `OnlineMeetings.Read`, `OnlineMeetingTranscript.Read.All`, and `offline_access`. `OnlineMeetingTranscript.Read.All` often requires tenant admin consent.
 
 ### Run
 
