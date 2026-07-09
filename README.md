@@ -2,6 +2,8 @@
 
 **AI-powered meeting transcription, correction, summarization, and retrieval — built for enterprise knowledge management.**
 
+**🚀 Live demo: [haoran-yang-henry.github.io/Meeting_KMS_Original](https://haoran-yang-henry.github.io/Meeting_KMS_Original/)** — sign up with any email and try it.
+
 https://github.com/haoran-yang-henry/Meeting_KMS_Original/assets/245156046/568974182-530154bb-6bb3-4b9a-8299-cd5682ebe469
 
 ---

@@ -1,0 +1,52 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+        env:
+          # Public client config: the anon key is safe to expose by design —
+          # access control is enforced server-side by Supabase Auth + RLS.
+          VITE_SUPABASE_PROJECT_ID: umentgmndgkzstfpaeep
+          VITE_SUPABASE_URL: https://umentgmndgkzstfpaeep.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtZW50Z21uZGdrenN0ZnBhZWVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MzA5MTMsImV4cCI6MjA5OTEwNjkxM30.XmlVSpJf_cG7609ieGWBZ0rdLi7kqrD9JtCPfdLOVi8
+
+      # SPA fallback: GitHub Pages serves 404.html for unknown paths,
+      # letting React Router handle deep links client-side.
+      - run: cp dist/index.html dist/404.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
