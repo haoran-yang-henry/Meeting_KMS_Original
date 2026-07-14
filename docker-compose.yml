@@ -1,0 +1,14 @@
+# Frontend-only for now; the self-hosted Supabase stack (postgres, gotrue,
+# edge-runtime, gateway) will be added as further services in phase 2.
+#
+# Compose reads VITE_* values from .env in this directory automatically.
+services:
+  frontend:
+    build: .
+    image: meeting-kms-frontend
+    ports:
+      - "8080:80"
+    environment:
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+    restart: unless-stopped

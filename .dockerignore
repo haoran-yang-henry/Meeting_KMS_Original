@@ -1,0 +1,18 @@
+# Dependencies & build output (rebuilt inside the image)
+node_modules
+dist
+
+# Never bake local env values into the image — config is injected at runtime
+.env
+.env.*
+
+# Not needed for the frontend build
+.git
+.github
+.agents
+.codex
+docs
+docu
+supabase
+README.md
+LICENSE

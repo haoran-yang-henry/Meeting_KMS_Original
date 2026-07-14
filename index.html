@@ -20,6 +20,9 @@
 
   <body>
     <div id="root"></div>
+    <!-- Runtime config; must load before the app bundle (classic scripts
+         execute during parse, module scripts are deferred) -->
+    <script src="%BASE_URL%env.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

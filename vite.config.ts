@@ -5,8 +5,9 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // GitHub Pages serves the app under /<repo-name>/
-  base: mode === "production" ? "/Meeting_KMS_Original/" : "/",
+  // GitHub Pages serves the app under /<repo-name>/; container builds
+  // override this with VITE_BASE_PATH=/ (see Dockerfile)
+  base: process.env.VITE_BASE_PATH ?? (mode === "production" ? "/Meeting_KMS_Original/" : "/"),
   server: {
     host: "::",
     port: 8080,

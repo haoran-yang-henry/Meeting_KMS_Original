@@ -134,6 +134,27 @@ npm run build     # Production build
 npm run preview   # Preview production build
 ```
 
+### Run with Docker
+
+The frontend ships as a self-contained nginx image. Supabase connection
+details are injected at container startup (not baked into the image), so the
+same image can point at any Supabase instance — cloud or self-hosted.
+
+```bash
+docker compose up --build    # serves http://localhost:8080
+```
+
+Compose reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from
+`.env`. To run the image directly:
+
+```bash
+docker build -t meeting-kms-frontend .
+docker run -p 8080:80 \
+  -e VITE_SUPABASE_URL="https://<your-project>.supabase.co" \
+  -e VITE_SUPABASE_PUBLISHABLE_KEY="<your-anon-key>" \
+  meeting-kms-frontend
+```
+
 ---
 
 ## Architecture
